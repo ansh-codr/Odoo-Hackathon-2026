@@ -22,6 +22,3 @@ Welcome to our official repository for the **Odoo Hackathon 2026**! This is a 24
 - [ ] **Video Link Submission:** 12 Jul, 05:45 PM
 
 ---
-
-## 💡 Problem Statement
-*(Once the problem statement is released on July 12th at 8:30 AM, paste it here to let your evaluator know exactly what you are building!)*
