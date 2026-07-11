@@ -6,7 +6,8 @@ Welcome to our official repository for the **Odoo Hackathon 2026**! This is a 24
 
 ## 👥 Our Team
 * **Team Leader:** Ansh yadav
-* **Team Members:** * Abhay Kumar
+* **Team Members:** 
+  * Abhay Kumar
   * Adarshkatara
   * Krishna Gupta
 
