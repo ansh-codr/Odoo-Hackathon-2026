@@ -9,7 +9,7 @@ export type AssetStatus =
   | "retired"
   | "disposed";
 
-const STATUS_META: Record<AssetStatus, { label: string; cls: string; dot: string }> = {
+const STATUS_META: Record<AssetStatus | "upcoming" | "ongoing" | "completed" | "cancelled", { label: string; cls: string; dot: string }> = {
   available: {
     label: "Available",
     cls: "bg-status-available-bg text-status-available",
@@ -45,13 +45,33 @@ const STATUS_META: Record<AssetStatus, { label: string; cls: string; dot: string
     cls: "bg-status-disposed-bg text-status-disposed",
     dot: "bg-status-disposed",
   },
+  upcoming: {
+    label: "Upcoming",
+    cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    dot: "bg-blue-500",
+  },
+  ongoing: {
+    label: "Ongoing",
+    cls: "bg-status-available-bg text-status-available",
+    dot: "bg-status-available",
+  },
+  completed: {
+    label: "Completed",
+    cls: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+    dot: "bg-gray-500",
+  },
+  cancelled: {
+    label: "Cancelled",
+    cls: "bg-status-lost-bg text-status-lost",
+    dot: "bg-status-lost",
+  },
 };
 
 export function StatusPill({
   status,
   className,
 }: {
-  status: AssetStatus;
+  status: AssetStatus | "upcoming" | "ongoing" | "completed" | "cancelled";
   className?: string;
 }) {
   const meta = STATUS_META[status];

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Sidebar, type Role } from "@/components/assetflow/Sidebar";
 import { Topbar } from "@/components/assetflow/Topbar";
 import { Dashboard } from "@/components/assetflow/Dashboard";
+import { ResourceBookings } from "@/components/assetflow/ResourceBookings";
 
 export const Route = createFileRoute("/app")({
   component: AppShell,
@@ -20,6 +21,8 @@ function AppShell() {
         <main className="flex-1 overflow-y-auto">
           {active === "dashboard" ? (
             <Dashboard />
+          ) : active === "bookings" ? (
+            <ResourceBookings />
           ) : (
             <div className="grid h-full place-items-center text-sm text-muted-foreground">
               <div className="text-center">
