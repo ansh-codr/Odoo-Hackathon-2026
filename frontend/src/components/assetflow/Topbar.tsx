@@ -63,21 +63,14 @@ export function Topbar({
 
       <div className="flex-1" />
 
-      {/* Role switcher (demo) */}
+      {/* Role switcher (Real Role Display) */}
       <div className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 md:flex">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          View as
+          Role
         </span>
-        <select
-          value={role}
-          onChange={(e) => onRoleChange(e.target.value as Role)}
-          className="bg-transparent text-xs font-medium text-foreground outline-none"
-        >
-          <option value="admin">Admin</option>
-          <option value="asset_manager">Asset Manager</option>
-          <option value="department_head">Department Head</option>
-          <option value="employee">Employee</option>
-        </select>
+        <span className="text-xs font-medium text-foreground">
+          {ROLE_LABEL[role] || "Employee"}
+        </span>
       </div>
 
       <button className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">

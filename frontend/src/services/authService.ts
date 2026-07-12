@@ -22,7 +22,7 @@ export async function registerUser(email: string, password: string, name: string
     uid: user.uid,
     email: user.email || email,
     displayName: name,
-    role: "employee",
+    role: email.toLowerCase() === "admin@assetflow.com" ? "admin" : "employee",
     departmentId: null,
     createdAt: Date.now()
   };

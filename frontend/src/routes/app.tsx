@@ -1,5 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { getUserProfile } from "@/services/authService";
 
 import { Sidebar, type Role } from "@/components/assetflow/Sidebar";
 import { Topbar } from "@/components/assetflow/Topbar";
@@ -18,9 +21,24 @@ export const Route = createFileRoute("/app")({
 });
 
 function AppShell() {
-  const [role, setRole] = useState<Role>("admin");
+  const [role, setRole] = useState<Role>("employee");
   const [active, setActive] = useState("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const profile = await getUserProfile(user.uid);
+        if (profile && profile.role) {
+          setRole(profile.role as Role);
+        }
+      } else {
+        navigate({ to: "/login" });
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
