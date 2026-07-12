@@ -6,8 +6,8 @@ import type { Asset } from "./types";
 
 import { AssetTable } from "./AssetTable";
 import { RegisterAssetDialog } from "./RegisterAssetDialog";
-import { AllocateAssetDialog } from "./AllocateAssetDialog";
-import { TransferAssetDialog } from "./TransferAssetDialog";
+import { AllocateAssetPage } from "./AllocateAssetPage";
+import { TransferAssetPage } from "./TransferAssetPage";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,9 +26,13 @@ export function Assets() {
 
   const [search, setSearch] = useState("");
   const [registerOpen, setRegisterOpen] = useState(false);
-  const [allocateOpen, setAllocateOpen] = useState(false);
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+
+  const [selectedAsset, setSelectedAsset] =
+    useState<Asset | null>(null);
+
+  const [page, setPage] = useState<
+    "list" | "allocate" | "transfer"
+  >("list");
 
   async function fetchAssets() {
     try {
@@ -90,49 +94,59 @@ export function Assets() {
 
   function handleAllocate(asset: Asset) {
     setSelectedAsset(asset);
-    setAllocateOpen(true);
+    setPage("allocate");
   }
 
   function handleTransfer(asset: Asset) {
     setSelectedAsset(asset);
-    setTransferOpen(true);
+    setPage("transfer");
   }
 
-  async function allocateAsset(data: {
+  function allocateAsset(data: {
     employee: string;
     department: string;
     allocationDate: string;
     returnDate: string;
   }) {
     if (!selectedAsset) return;
-    try {
-      await allocateAssetService(
-        selectedAsset.id,
-        data.employee || null,
-        data.department || null,
-        data.returnDate || null
-      );
-      await fetchAssets();
-      setAllocateOpen(false);
-      toast.success("Asset allocated successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to allocate asset");
-    }
+
+    setAssets((prev) =>
+      prev.map((asset) =>
+        asset.id === selectedAsset.id
+          ? {
+              ...asset,
+              assignedTo: data.employee,
+              location: data.department,
+              status: "Allocated",
+            }
+          : asset
+      )
+    );
+
+    setSelectedAsset(null);
+    setPage("list");
   }
 
-  async function transferAsset(
+  function transferAsset(
     assetId: string,
     employee: string,
     department: string
   ) {
-    try {
-      await requestTransfer(assetId, employee);
-      await fetchAssets();
-      setTransferOpen(false);
-      toast.success("Transfer request raised successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to initiate transfer");
-    }
+    setAssets((prev) =>
+      prev.map((asset) =>
+        asset.id === assetId
+          ? {
+              ...asset,
+              assignedTo: employee,
+              location: department,
+              status: "Allocated",
+            }
+          : asset
+      )
+    );
+
+    setSelectedAsset(null);
+    setPage("list");
   }
 
   const filteredAssets = useMemo(() => {
@@ -156,63 +170,68 @@ export function Assets() {
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-6">
 
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold">
-            Asset Management
-          </h1>
+      {page === "list" && (
+        <>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-2xl font-bold">
+                Asset Management
+              </h1>
 
-          <p className="mt-1 text-sm text-muted-foreground">
-            Register, allocate and manage company assets.
-          </p>
-        </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Register, allocate and manage company assets.
+              </p>
+            </div>
 
-        <Button onClick={() => setRegisterOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Register Asset
-        </Button>
-      </div>
+            <Button onClick={() => setRegisterOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Register Asset
+            </Button>
+          </div>
 
       <div className="mb-5">
         <Input
-          placeholder="Search assets by tag, name, category, location, assignee..."
+          placeholder="Search assets..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      {loading ? (
-        <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-          Loading assets from database...
-        </div>
-      ) : (
-        <AssetTable
-          assets={filteredAssets}
-          onAllocate={handleAllocate}
-          onTransfer={handleTransfer}
+      <AssetTable
+        assets={filteredAssets}
+        onAllocate={handleAllocate}
+        onTransfer={handleTransfer}
+      />
+
+          <RegisterAssetDialog
+            open={registerOpen}
+            onOpenChange={setRegisterOpen}
+            onSave={handleSave}
+          />
+        </>
+      )}
+
+      {page === "allocate" && selectedAsset && (
+        <AllocateAssetPage
+          asset={selectedAsset}
+          onBack={() => {
+            setSelectedAsset(null);
+            setPage("list");
+          }}
+          onAllocate={allocateAsset}
         />
       )}
 
-      <RegisterAssetDialog
-        open={registerOpen}
-        onOpenChange={setRegisterOpen}
-        onSave={handleSave}
-      />
-
-      <AllocateAssetDialog
-        open={allocateOpen}
-        asset={selectedAsset}
-        onOpenChange={setAllocateOpen}
-        onAllocate={allocateAsset}
-      />
-
-      <TransferAssetDialog
-        open={transferOpen}
-        asset={selectedAsset}
-        onOpenChange={setTransferOpen}
-        onTransfer={transferAsset}
-      />
-
+      {page === "transfer" && selectedAsset && (
+        <TransferAssetPage
+          asset={selectedAsset}
+          onBack={() => {
+            setSelectedAsset(null);
+            setPage("list");
+          }}
+          onTransfer={transferAsset}
+        />
+      )}
     </div>
   );
 }

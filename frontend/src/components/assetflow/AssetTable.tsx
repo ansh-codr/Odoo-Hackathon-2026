@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Asset } from "./types";
-
+import { canAllocate, canTransfer } from "./assetUtils";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -99,7 +99,6 @@ export function AssetTable({
                 <TableCell>{asset.location}</TableCell>
 
                 <TableCell className="space-x-2">
-
                   <Button
                     size="sm"
                     variant="outline"
@@ -114,7 +113,12 @@ export function AssetTable({
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={asset.status !== "Available"}
+                    disabled={!canAllocate(asset.status)}
+                    title={
+                      !canAllocate(asset.status)
+                        ? "Only available assets can be allocated"
+                        : ""
+                    }
                     onClick={() => onAllocate(asset)}
                   >
                     Allocate
@@ -122,12 +126,16 @@ export function AssetTable({
 
                   <Button
                     size="sm"
-                    disabled={asset.status !== "Allocated"}
+                    disabled={!canTransfer(asset.status)}
+                    title={
+                      !canTransfer(asset.status)
+                        ? "Only allocated assets can be transferred"
+                        : ""
+                    }
                     onClick={() => onTransfer(asset)}
                   >
                     Transfer
                   </Button>
-
                 </TableCell>
               </TableRow>
             ))}
