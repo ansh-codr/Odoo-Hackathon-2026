@@ -294,3 +294,18 @@ export async function rejectTransfer(requestId: string): Promise<void> {
 
   await logActivity("Reject Transfer", `Rejected transfer request ${requestId}`);
 }
+
+export function recordAssetHistory(
+  transaction: any,
+  assetId: string,
+  type: string,
+  description: string
+) {
+  const historyRef = doc(collection(db, "assets", assetId, "history"));
+  transaction.set(historyRef, {
+    id: historyRef.id,
+    type,
+    description,
+    timestamp: Date.now()
+  });
+}

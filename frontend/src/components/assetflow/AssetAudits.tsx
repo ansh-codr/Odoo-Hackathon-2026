@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -6,11 +6,7 @@ import {
   XCircle,
   Clock,
   Filter,
-  Download,
   ArrowUpDown,
-  ArrowUpRight,
-  ArrowDownRight,
-  FileText,
   Plus,
 } from "lucide-react";
 import { StatusPill } from "./StatusPill";
@@ -18,89 +14,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 
-type AuditStatus = "scheduled" | "active" | "completed" | "closed";
-type VerificationStatus = "pending" | "verified" | "missing" | "damaged";
-
-type AuditAsset = {
-  id: string;
-  tag: string;
-  name: string;
-  department: string;
-  status: VerificationStatus;
-  remarks?: string;
-  verifiedBy?: string;
-  verifiedAt?: string;
-};
-
-type AuditCycle = {
-  id: string;
-  name: string;
-  department: string;
-  location: string;
-  auditors: string[];
-  startDate: string;
-  endDate: string;
-  status: AuditStatus;
-  assets: AuditAsset[];
-};
-
-
-const MOCK_ASSETS: AuditAsset[] = [
-  { id: "A-1", tag: "AF-0112", name: "MacBook Pro M2", department: "Engineering", status: "pending" },
-  { id: "A-2", tag: "AF-0240", name: "Office Chair v2", department: "Engineering", status: "verified", verifiedBy: "Alex Wong", verifiedAt: "2026-07-11 10:30 AM" },
-  { id: "A-3", tag: "AF-0050", name: "Projector X1", department: "Engineering", status: "missing", remarks: "Not found in meeting room A" },
-  { id: "A-4", tag: "AF-0899", name: "Company iPad Pro", department: "Engineering", status: "damaged", remarks: "Screen cracked" },
-];
-
-const INITIAL_AUDITS: AuditCycle[] = [
-  {
-    id: "AUD-2026-01",
-    name: "Q3 Engineering Asset Verification",
-    department: "Engineering",
-    location: "HQ - Floor 3",
-    auditors: ["Alex Wong", "Sarah Jenkins"],
-    startDate: "2026-07-10",
-    endDate: "2026-07-20",
-    status: "active",
-    assets: [...MOCK_ASSETS],
-  },
-  {
-    id: "AUD-2026-02",
-    name: "Annual IT Hardware Check",
-    department: "IT",
-    location: "Global",
-    auditors: ["Mike Ross"],
-    startDate: "2026-08-01",
-    endDate: "2026-08-15",
-    status: "scheduled",
-    assets: [
-      { id: "A-5", tag: "AF-0900", name: "Dell Server Rack", department: "IT", status: "pending" },
-      { id: "A-6", tag: "AF-0901", name: "Cisco Router", department: "IT", status: "pending" },
-    ],
-  },
-  {
-    id: "AUD-2026-00",
-    name: "Q2 Sales Equipment Audit",
-    department: "Sales",
-    location: "Regional Office",
-    auditors: ["Emily Davis"],
-    startDate: "2026-04-01",
-    endDate: "2026-04-10",
-    status: "closed",
-    assets: [
-      { id: "A-7", tag: "AF-0910", name: "Sales Laptop 1", department: "Sales", status: "verified" },
-      { id: "A-8", tag: "AF-0911", name: "Sales Laptop 2", department: "Sales", status: "verified" },
-    ],
-  },
-];
+// Integration imports
+import { getAudits, createAuditCycle, verifyAuditAsset, closeAuditCycle, AuditCycle, VerificationStatus } from "../../services/auditService";
 
 export function AssetAudits() {
-  const [audits, setAudits] = useState<AuditCycle[]>(INITIAL_AUDITS);
+  const [audits, setAudits] = useState<AuditCycle[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // Drawer State
   const [selectedAudit, setSelectedAudit] = useState<AuditCycle | null>(null);
@@ -118,22 +41,38 @@ export function AssetAudits() {
   });
   const [formError, setFormError] = useState("");
 
+  async function loadAudits() {
+    try {
+      setLoading(true);
+      const list = await getAudits();
+      setAudits(list);
+    } catch (err) {
+      toast.error("Failed to load audit cycles");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadAudits();
+  }, []);
+
   const activeAudits = audits.filter(a => a.status === "active").length;
   const verifiedAssets = audits.reduce((acc, a) => acc + a.assets.filter(ast => ast.status === "verified").length, 0);
   const missingAssets = audits.reduce((acc, a) => acc + a.assets.filter(ast => ast.status === "missing").length, 0);
   const damagedAssets = audits.reduce((acc, a) => acc + a.assets.filter(ast => ast.status === "damaged").length, 0);
 
   const STATS = [
-    { label: "Active Audit Cycles", value: activeAudits.toString(), delta: "in progress", trend: "up", icon: ClipboardCheck, sub: "current" },
-    { label: "Assets Verified", value: verifiedAssets.toString(), delta: "this month", trend: "up", icon: CheckCircle2, sub: "completed" },
-    { label: "Missing Assets", value: missingAssets.toString(), delta: "unresolved", trend: "down", icon: XCircle, sub: "unresolved" },
-    { label: "Damaged Assets", value: damagedAssets.toString(), delta: "needs repair", trend: "up", icon: AlertTriangle, sub: "needs repair" },
+    { label: "Active Audit Cycles", value: activeAudits.toString(), delta: "in progress", trend: "up", icon: ClipboardCheck, sub: "current cycles" },
+    { label: "Assets Verified", value: verifiedAssets.toString(), delta: "satisfactory", trend: "up", icon: CheckCircle2, sub: "completed" },
+    { label: "Missing Assets", value: missingAssets.toString(), delta: "unresolved", trend: "down", icon: XCircle, sub: "needs tracking" },
+    { label: "Damaged Assets", value: damagedAssets.toString(), delta: "needs repair", trend: "up", icon: AlertTriangle, sub: "reported defects" },
   ];
 
-  const handleCreateAudit = () => {
+  const handleCreateAudit = async () => {
     setFormError("");
     if (!newForm.name || !newForm.department || !newForm.startDate || !newForm.endDate || !newForm.auditors) {
-      setFormError("Please fill in all mandatory fields (Name, Department, Dates, Auditors).");
+      setFormError("Please fill in all mandatory fields (Name, Department Scope, Dates, Auditors).");
       return;
     }
 
@@ -142,67 +81,70 @@ export function AssetAudits() {
       return;
     }
 
-    const newAudit: AuditCycle = {
-      id: `AUD-2026-0${audits.length + 1}`,
-      name: newForm.name,
-      department: newForm.department,
-      location: newForm.location,
-      auditors: newForm.auditors.split(",").map(a => a.trim()),
-      startDate: newForm.startDate,
-      endDate: newForm.endDate,
-      status: "scheduled",
-      assets: [], // empty for mock
-    };
+    try {
+      await createAuditCycle(
+        newForm.name,
+        newForm.department,
+        newForm.location || "GlobalScope",
+        newForm.startDate,
+        newForm.endDate,
+        newForm.auditors
+      );
 
-    setAudits((prev) => [newAudit, ...prev]);
-    setIsCreateModalOpen(false);
-    toast.success("Audit Cycle Created", { description: `${newAudit.name} scheduled.` });
-    
-    // Reset
-    setNewForm({ name: "", department: "", location: "", startDate: "", endDate: "", auditors: "", notes: "" });
-  };
-
-  const handleVerifyAsset = (assetId: string, status: VerificationStatus, remarks?: string) => {
-    if (!selectedAudit) return;
-
-    const updatedAssets = selectedAudit.assets.map(a => 
-      a.id === assetId ? { 
-        ...a, 
-        status, 
-        remarks: remarks || a.remarks, 
-        verifiedBy: "Current User", 
-        verifiedAt: new Date().toLocaleString() 
-      } : a
-    );
-
-    const isAllVerified = updatedAssets.every(a => a.status !== "pending");
-    const updatedStatus = isAllVerified ? "completed" : selectedAudit.status;
-
-    const updatedAudit = { ...selectedAudit, assets: updatedAssets, status: updatedStatus as AuditStatus };
-    
-    setSelectedAudit(updatedAudit);
-    setAudits(prev => prev.map(a => a.id === updatedAudit.id ? updatedAudit : a));
-    
-    if (status === "missing" || status === "damaged") {
-      toast.warning("Discrepancy Detected", { description: `Asset marked as ${status}.` });
-    } else {
-      toast.success("Asset Verified");
+      await loadAudits();
+      setIsCreateModalOpen(false);
+      toast.success("Audit Cycle Created");
+      
+      // Reset
+      setNewForm({ name: "", department: "", location: "", startDate: "", endDate: "", auditors: "", notes: "" });
+    } catch (err: any) {
+      setFormError(err.message || "Failed to create audit cycle");
     }
   };
 
-  const handleCloseAudit = () => {
+  const handleVerifyAsset = async (assetId: string, status: VerificationStatus, remarks?: string) => {
+    if (!selectedAudit) return;
+
+    try {
+      await verifyAuditAsset(selectedAudit.id, assetId, status, remarks || "Verified during cycle");
+      
+      // Reload lists and refresh selected drawer content
+      const list = await getAudits();
+      setAudits(list);
+      
+      const updatedCycle = list.find(c => c.id === selectedAudit.id);
+      if (updatedCycle) {
+        setSelectedAudit(updatedCycle);
+      }
+
+      if (status === "missing" || status === "damaged") {
+        toast.warning("Discrepancy Logged");
+      } else {
+        toast.success("Asset Verified");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to verify asset");
+    }
+  };
+
+  const handleCloseAudit = async () => {
     if (!selectedAudit) return;
     
-    const hasPending = selectedAudit.assets.some(a => a.status === "pending");
-    if (hasPending) {
-      toast.error("Cannot close audit. Some assets are still pending verification.");
-      return;
-    }
+    try {
+      await closeAuditCycle(selectedAudit.id);
+      
+      const list = await getAudits();
+      setAudits(list);
+      
+      const updatedCycle = list.find(c => c.id === selectedAudit.id);
+      if (updatedCycle) {
+        setSelectedAudit(updatedCycle);
+      }
 
-    const updatedAudit = { ...selectedAudit, status: "closed" as AuditStatus };
-    setSelectedAudit(updatedAudit);
-    setAudits(prev => prev.map(a => a.id === updatedAudit.id ? updatedAudit : a));
-    toast.success("Audit Closed", { description: `Audit ${updatedAudit.id} is now closed and locked.` });
+      toast.success("Audit Cycle Closed & Locked");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to close audit cycle");
+    }
   };
 
   const getProgress = (audit: AuditCycle) => {
@@ -237,167 +179,140 @@ export function AssetAudits() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {STATS.map((s) => {
-          const Icon = s.icon;
-          const up = s.trend === "up";
-          const isWarning = s.label.includes("Missing") || s.label.includes("Damaged");
-          return (
-            <div key={s.label} className="card-surface p-4">
-              <div className="flex items-start justify-between">
-                <div className="text-xs font-medium text-muted-foreground">{s.label}</div>
-                <div className={`grid h-7 w-7 place-items-center rounded-md text-muted-foreground ${isWarning ? 'bg-orange-50 text-orange-500' : 'bg-muted'}`}>
-                  <Icon className="h-3.5 w-3.5" />
+      {loading ? (
+        <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+          Loading audit cycles...
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {STATS.map((s) => {
+              const Icon = s.icon;
+              const isWarning = s.label.includes("Missing") || s.label.includes("Damaged");
+              return (
+                <div key={s.label} className="card-surface p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="text-xs font-medium text-muted-foreground">{s.label}</div>
+                    <div className={`grid h-7 w-7 place-items-center rounded-md text-muted-foreground ${isWarning ? 'bg-orange-50 text-orange-500' : 'bg-muted'}`}>
+                      <Icon className="h-3.5 w-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <div className="font-display text-3xl font-bold tracking-tight tabular text-foreground">
+                      {s.value}
+                    </div>
+                    <div className="text-xs font-semibold tabular text-muted-foreground">
+                      {s.delta}
+                    </div>
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">{s.sub}</div>
                 </div>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <div className="font-display text-3xl font-bold tracking-tight tabular text-foreground">
-                  {s.value}
-                </div>
-                <div
-                  className={`inline-flex items-center gap-0.5 text-xs font-semibold tabular ${
-                    isWarning 
-                      ? (up ? "text-status-lost" : "text-status-available")
-                      : (up ? "text-status-available" : "text-status-lost")
-                  }`}
-                >
-                  {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                  {s.delta}
-                </div>
-              </div>
-              <div className="mt-0.5 text-[11px] text-muted-foreground">{s.sub}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Main Content */}
-      <div className="mt-6 card-surface">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Filter className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search audits..."
-                className="h-8 w-[200px] rounded-md border border-input bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-            <Select>
-              <SelectTrigger className="h-8 w-[130px] text-xs">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger className="h-8 w-[130px] text-xs">
-                <SelectValue placeholder="Department" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="engineering">Engineering</SelectItem>
-                <SelectItem value="it">IT</SelectItem>
-                <SelectItem value="sales">Sales</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="ghost" size="sm" className="h-8 text-xs">
-              Clear Filters
-            </Button>
+              );
+            })}
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          {audits.length > 0 ? (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <Th>Audit Cycle ID</Th>
-                  <Th>Audit Name</Th>
-                  <Th>Dept / Location</Th>
-                  <Th>Assigned Auditors</Th>
-                  <Th>Dates</Th>
-                  <Th>Progress</Th>
-                  <Th>Status</Th>
-                  <Th className="text-right pr-4">Actions</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {audits.map((a) => {
-                  const progress = getProgress(a);
-                  return (
-                    <tr
-                      key={a.id}
-                      className="border-b border-border/60 last:border-0 hover:bg-muted/40"
-                    >
-                      <td className="whitespace-nowrap px-4 py-2.5 font-mono text-[12px] font-medium text-foreground">
-                        {a.id}
-                      </td>
-                      <td className="px-4 py-2.5 font-medium text-foreground">
-                        {a.name}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="font-medium text-foreground">{a.department}</div>
-                        <div className="text-[11px] text-muted-foreground">{a.location}</div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1">
-                          {a.auditors.map((auditor, i) => (
-                            <div key={i} className="inline-flex h-6 items-center justify-center rounded-full bg-muted px-2 text-[10px] font-medium text-foreground">
-                              {auditor}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-2.5">
-                        <div className="tabular text-foreground">{a.startDate}</div>
-                        <div className="text-[11px] tabular text-muted-foreground">to {a.endDate}</div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
-                            <div 
-                              className="h-full rounded-full bg-primary transition-all" 
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <span className="text-[11px] font-medium tabular text-muted-foreground">{progress}%</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <StatusPill status={a.status as any} />
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-2.5 pr-4 text-right">
-                        <button 
-                          onClick={() => setSelectedAudit(a)}
-                          className="inline-flex h-7 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground hover:bg-muted"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
-                <ClipboardCheck className="h-6 w-6" />
+          {/* Main Content */}
+          <div className="mt-6 card-surface">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Filter className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search audits..."
+                    className="h-8 w-[200px] rounded-md border border-input bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
               </div>
-              <h3 className="mt-4 text-sm font-semibold text-foreground">No audit cycles found</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Get started by creating your first audit cycle.</p>
-              <Button onClick={() => setIsCreateModalOpen(true)} className="mt-4" size="sm">
-                Create First Audit Cycle
-              </Button>
             </div>
-          )}
-        </div>
-      </div>
+
+            <div className="overflow-x-auto">
+              {audits.length > 0 ? (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Th>Audit Cycle ID</Th>
+                      <Th>Audit Name</Th>
+                      <Th>Dept / Location</Th>
+                      <Th>Assigned Auditors</Th>
+                      <Th>Dates</Th>
+                      <Th>Progress</Th>
+                      <Th>Status</Th>
+                      <Th className="text-right pr-4">Actions</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {audits.map((a) => {
+                      const progress = getProgress(a);
+                      return (
+                        <tr
+                          key={a.id}
+                          className="border-b border-border/60 last:border-0 hover:bg-muted/40"
+                        >
+                          <td className="whitespace-nowrap px-4 py-2.5 font-mono text-[12px] font-medium text-foreground">
+                            {a.id}
+                          </td>
+                          <td className="px-4 py-2.5 font-medium text-foreground">
+                            {a.name}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="font-medium text-foreground">{a.department}</div>
+                            <div className="text-[11px] text-muted-foreground">{a.location}</div>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="flex flex-wrap items-center gap-1">
+                              {a.auditors.map((auditor, i) => (
+                                <div key={i} className="inline-flex h-6 items-center justify-center rounded-full bg-muted px-2 text-[10px] font-medium text-foreground">
+                                  {auditor}
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-2.5">
+                            <div className="tabular text-foreground">{a.startDate}</div>
+                            <div className="text-[11px] tabular text-muted-foreground">to {a.endDate}</div>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+                                <div 
+                                  className="h-full rounded-full bg-primary transition-all" 
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                              <span className="text-[11px] font-medium tabular text-muted-foreground">{progress}%</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <StatusPill status={a.status as any} />
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-2.5 pr-4 text-right">
+                            <button 
+                              onClick={() => setSelectedAudit(a)}
+                              className="inline-flex h-7 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground hover:bg-muted"
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
+                    <ClipboardCheck className="h-6 w-6" />
+                  </div>
+                  <h3 className="mt-4 text-sm font-semibold text-foreground">No audit cycles found</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Get started by creating your first audit cycle.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Create Audit Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
@@ -428,7 +343,7 @@ export function AssetAudits() {
                   id="dept" 
                   value={newForm.department} 
                   onChange={(e) => setNewForm({...newForm, department: e.target.value})} 
-                  placeholder="e.g. IT"
+                  placeholder="e.g. IT (or Global)"
                 />
               </div>
               <div className="grid gap-2">
@@ -597,8 +512,8 @@ export function AssetAudits() {
                         {selectedAudit.assets.filter(a => a.status === "missing" || a.status === "damaged").map((asset) => (
                           <tr key={`disc-${asset.id}`} className="border-b border-orange-200/50 last:border-0">
                             <td className="px-3 py-2">
-                              <div className="font-medium text-orange-900">{asset.name}</div>
-                              <div className="text-xs text-orange-700 font-mono">{asset.tag}</div>
+                               <div className="font-medium text-orange-900">{asset.name}</div>
+                               <div className="text-xs text-orange-700 font-mono">{asset.tag}</div>
                             </td>
                             <td className="px-3 py-2">
                               <StatusPill status={asset.status as any} />
@@ -613,67 +528,6 @@ export function AssetAudits() {
                   </div>
                 </div>
               )}
-
-              {/* Timeline */}
-              <div>
-                <h4 className="text-sm font-semibold mb-3">Audit History</h4>
-                <div className="space-y-3 relative before:absolute before:inset-0 before:ml-1.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-                  <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-3 h-3 rounded-full border border-primary bg-background shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" />
-                    <div className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] text-sm ml-4 md:ml-0 md:group-odd:text-right">
-                      <div className="font-medium text-foreground">Audit Cycle Created</div>
-                      <div className="text-xs text-muted-foreground">{selectedAudit.startDate}</div>
-                    </div>
-                  </div>
-                  <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-3 h-3 rounded-full border border-primary bg-background shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" />
-                    <div className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] text-sm ml-4 md:ml-0 md:group-odd:text-right">
-                      <div className="font-medium text-foreground">Auditors Assigned</div>
-                      <div className="text-xs text-muted-foreground">{selectedAudit.auditors.join(", ")}</div>
-                    </div>
-                  </div>
-                  
-                  {getProgress(selectedAudit) > 0 && (
-                    <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                      <div className="flex items-center justify-center w-3 h-3 rounded-full border border-primary bg-background shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" />
-                      <div className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] text-sm ml-4 md:ml-0 md:group-odd:text-right">
-                        <div className="font-medium text-foreground">Verification Started</div>
-                        <div className="text-xs text-muted-foreground">{getProgress(selectedAudit)}% Complete</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedAudit.assets.some(a => a.status === "missing" || a.status === "damaged") && (
-                    <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                      <div className="flex items-center justify-center w-3 h-3 rounded-full border border-orange-500 bg-background shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" />
-                      <div className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] text-sm ml-4 md:ml-0 md:group-odd:text-right">
-                        <div className="font-medium text-orange-600">Discrepancy Detected</div>
-                        <div className="text-xs text-muted-foreground">Report generated</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedAudit.status === "completed" || selectedAudit.status === "closed" ? (
-                    <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                      <div className="flex items-center justify-center w-3 h-3 rounded-full border border-primary bg-background shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" />
-                      <div className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] text-sm ml-4 md:ml-0 md:group-odd:text-right">
-                        <div className="font-medium text-foreground">Assets Verified</div>
-                        <div className="text-xs text-muted-foreground">All assigned assets checked</div>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {selectedAudit.status === "closed" && (
-                    <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                      <div className="flex items-center justify-center w-3 h-3 rounded-full border border-gray-500 bg-background shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" />
-                      <div className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] text-sm ml-4 md:ml-0 md:group-odd:text-right">
-                        <div className="font-medium text-foreground">Audit Closed</div>
-                        <div className="text-xs text-muted-foreground">Cycle locked by manager</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
 
               {/* Close Action */}
               {selectedAudit.status !== "closed" && (
