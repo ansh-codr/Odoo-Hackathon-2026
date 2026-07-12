@@ -1,5 +1,13 @@
-import { Bell, Search, ChevronDown, HelpCircle, Menu } from "lucide-react";
+import { Bell, Search, ChevronDown, HelpCircle, Menu, LogOut } from "lucide-react";
 import type { Role } from "./Sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { logoutUser } from "../../services/authService";
+import { useNavigate } from "@tanstack/react-router";
 
 const ROLE_LABEL: Record<Role, string> = {
   admin: "Admin",
@@ -25,6 +33,12 @@ export function Topbar({
 }) {
   const [user, setUser] = useState<User | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(3); // Default from mock
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logoutUser();
+    navigate({ to: "/login" });
+  };
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => setUser(u));
@@ -91,18 +105,28 @@ export function Topbar({
       </button>
 
       {/* Profile */}
-      <button className="flex items-center gap-2 rounded-md pl-1 pr-2 py-1 hover:bg-muted">
-        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground uppercase">
-          {user ? (user.displayName ? user.displayName.slice(0, 2) : user.email?.slice(0, 2)) : "US"}
-        </div>
-        <div className="hidden text-left leading-tight md:block">
-          <div className="text-xs font-semibold text-foreground">
-            {user ? (user.displayName || user.email) : "Guest User"}
-          </div>
-          <div className="text-[10px] font-medium text-muted-foreground">{ROLE_LABEL[role]}</div>
-        </div>
-        <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground md:block" />
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex items-center gap-2 rounded-md pl-1 pr-2 py-1 hover:bg-muted outline-none">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground uppercase">
+              {user ? (user.displayName ? user.displayName.slice(0, 2) : user.email?.slice(0, 2)) : "US"}
+            </div>
+            <div className="hidden text-left leading-tight md:block">
+              <div className="text-xs font-semibold text-foreground">
+                {user ? (user.displayName || user.email) : "Guest User"}
+              </div>
+              <div className="text-[10px] font-medium text-muted-foreground">{ROLE_LABEL[role]}</div>
+            </div>
+            <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground md:block" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
+            <LogOut className="mr-2 h-4 w-4" />
+            Log out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
   );
 }
