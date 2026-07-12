@@ -4,6 +4,7 @@ import {
   setDoc, 
   doc, 
   updateDoc, 
+  deleteDoc, 
   query, 
   where, 
   orderBy,
@@ -44,4 +45,10 @@ export async function getNotifications(userId: string): Promise<AppNotification[
 export async function markAsRead(notificationId: string): Promise<void> {
   const docRef = doc(db, "notifications", notificationId);
   await updateDoc(docRef, { isRead: true });
+}
+
+
+export async function deleteNotification(notificationId: string): Promise<void> {
+  const docRef = doc(db, "notifications", notificationId);
+  await deleteDoc(docRef);
 }

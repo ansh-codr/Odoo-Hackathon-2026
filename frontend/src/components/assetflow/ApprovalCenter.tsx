@@ -23,6 +23,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
+import { getTransferRequests, approveTransfer, rejectTransfer } from "../../services/assetService";
+import { getMaintenanceRequests, approveMaintenanceRequest, rejectMaintenanceRequest } from "../../services/maintenanceService";
+import { TransferRequest, MaintenanceRequest as DBMaintenanceRequest } from "../../services/types";
+
 type ApprovalStatus = "pending" | "approved" | "rejected" | "escalated";
 type Priority = "low" | "medium" | "high" | "critical";
 type RequestType = "maintenance" | "transfer" | "return" | "allocation";
@@ -48,61 +52,85 @@ type ApprovalRequest = {
 };
 
 
-export const INITIAL_APPROVAL_REQUESTS: ApprovalRequest[] = [
-  {
-    id: "REQ-2001",
-    type: "maintenance",
-    assetTag: "AF-0112",
-    assetName: "MacBook Pro M2",
-    requestedBy: "Sarah Jenkins",
-    department: "Marketing",
-    priority: "high",
-    status: "pending",
-    submittedOn: "2026-07-12",
-    description: "Screen flickering sporadically during use. Needs urgent repair.",
-  },
-  {
-    id: "REQ-2002",
-    type: "transfer",
-    assetTag: "AF-0240",
-    assetName: "Office Chair v2",
-    requestedBy: "David Chen",
-    department: "Engineering",
-    priority: "medium",
-    status: "pending",
-    submittedOn: "2026-07-11",
-    currentHolder: "Mike Ross",
-    requestedHolder: "David Chen",
-    reason: "Current chair is broken, need a replacement while mine is repaired.",
-  },
-  {
-    id: "REQ-2003",
-    type: "return",
-    assetTag: "AF-0050",
-    assetName: "Projector X1",
-    requestedBy: "Mike Ross",
-    department: "Logistics",
-    priority: "low",
-    status: "pending",
-    submittedOn: "2026-07-10",
-    conditionCheck: "Good working condition. Minor scratch on the lens cover.",
-  },
-  {
-    id: "REQ-2004",
-    type: "allocation",
-    assetTag: "AF-0899",
-    assetName: "Company iPad Pro",
-    requestedBy: "Emily Davis",
-    department: "Sales",
-    priority: "high",
-    status: "approved",
-    submittedOn: "2026-07-09",
-    expectedReturnDate: "2026-08-01",
-  },
-];
+export const INITIAL_APPROVAL_REQUESTS: ApprovalRequest[] = [];
 
 export function ApprovalCenter() {
-  const [requests, setRequests] = useState<ApprovalRequest[]>(INITIAL_APPROVAL_REQUESTS);
+  
+  const [requests, setRequests] = useState<ApprovalRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function loadRequests() {
+    setLoading(true);
+    try {
+      const [transfers, maintenances] = await Promise.all([
+        getTransferRequests(),
+        getMaintenanceRequests()
+      ]);
+
+      const mapped: ApprovalRequest[] = [];
+
+      transfers.forEach(t => {
+        let status: ApprovalStatus = "pending";
+        if (t.status === "Approved") status = "approved";
+        else if (t.status === "Rejected") status = "rejected";
+
+        mapped.push({
+          id: t.id,
+          type: "transfer",
+          assetTag: "",
+          assetName: `Asset ${t.assetId.slice(0, 5)}`, // Ideally we'd join with assets, but this works for demo
+          requestedBy: t.fromUserName,
+          department: "General",
+          priority: "medium",
+          status,
+          submittedOn: new Date(t.requestedAt).toISOString().split('T')[0],
+          currentHolder: t.fromUserName,
+          requestedHolder: t.toUserName
+        });
+      });
+
+      maintenances.forEach(m => {
+        let status: ApprovalStatus = "pending";
+        if (m.status !== "Pending_Approval") {
+            if (m.status === "Rejected") status = "rejected";
+            else status = "approved";
+        }
+
+        let prio: Priority = "medium";
+        if (m.priority === "Low") prio = "low";
+        else if (m.priority === "High") prio = "high";
+        else if (m.priority === "Critical") prio = "critical";
+
+        mapped.push({
+          id: m.id,
+          type: "maintenance",
+          assetTag: m.assetTag,
+          assetName: m.assetName,
+          requestedBy: m.userName,
+          department: "General",
+          priority: prio,
+          status,
+          submittedOn: new Date(m.createdAt).toISOString().split('T')[0],
+          description: m.issueDescription
+        });
+      });
+
+      // Sort by date desc
+      mapped.sort((a, b) => new Date(b.submittedOn).getTime() - new Date(a.submittedOn).getTime());
+
+      setRequests(mapped);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load approval requests");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
   const [activeTab, setActiveTab] = useState<RequestType | "all">("all");
   
   // Drawer State
@@ -129,16 +157,21 @@ export function ApprovalCenter() {
 
   const filteredRequests = requests.filter(r => activeTab === "all" || r.type === activeTab);
 
-  const handleApprove = (req: ApprovalRequest) => {
-    // In a real app, we might open a modal for optional comments here.
-    // For this implementation, we'll auto-approve if clicked from table, or from drawer.
-    setRequests((prev) =>
-      prev.map((r) => (r.id === req.id ? { ...r, status: "approved" } : r))
-    );
-    if (selectedRequest?.id === req.id) {
-      setSelectedRequest({ ...selectedRequest, status: "approved" });
+  const handleApprove = async (req: ApprovalRequest) => {
+    try {
+      if (req.type === "transfer") {
+        await approveTransfer(req.id);
+      } else if (req.type === "maintenance") {
+        await approveMaintenanceRequest(req.id);
+      }
+      toast.success("Request Approved", { description: `${req.id} has been approved.` });
+      await loadRequests();
+      if (selectedRequest?.id === req.id) {
+        setSelectedRequest({ ...req, status: "approved" });
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to approve request");
     }
-    toast.success("Request Approved", { description: `${req.id} has been approved.` });
   };
 
   const handleOpenRejectModal = (req: ApprovalRequest) => {
@@ -148,18 +181,25 @@ export function ApprovalCenter() {
     setIsRejectModalOpen(true);
   };
 
-  const handleConfirmReject = () => {
+  const handleConfirmReject = async () => {
     if (!rejectReason.trim()) {
       setRejectError("Rejection reason is mandatory.");
       return;
     }
     if (selectedRequest) {
-      setRequests((prev) =>
-        prev.map((r) => (r.id === selectedRequest.id ? { ...r, status: "rejected" } : r))
-      );
-      setSelectedRequest({ ...selectedRequest, status: "rejected" });
-      setIsRejectModalOpen(false);
-      toast.success("Request Rejected", { description: `${selectedRequest.id} has been rejected.` });
+      try {
+        if (selectedRequest.type === "transfer") {
+          await rejectTransfer(selectedRequest.id);
+        } else if (selectedRequest.type === "maintenance") {
+          await rejectMaintenanceRequest(selectedRequest.id);
+        }
+        setIsRejectModalOpen(false);
+        toast.success("Request Rejected", { description: `${selectedRequest.id} has been rejected.` });
+        await loadRequests();
+        setSelectedRequest({ ...selectedRequest, status: "rejected" });
+      } catch (e: any) {
+        setRejectError(e.message || "Failed to reject request");
+      }
     }
   };
 

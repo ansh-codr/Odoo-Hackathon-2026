@@ -20,6 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { type Role } from "./Sidebar";
+import { getNotifications, markAsRead as markNotifRead, deleteNotification as delNotif } from "../../services/notificationService";
+import { getActivityLogs } from "../../services/logService";
+import { auth } from "../../lib/firebase";
 
 type Priority = "low" | "medium" | "high" | "critical";
 
@@ -45,61 +48,9 @@ type ActivityLog = {
   ipAddress: string;
 };
 
-export const MOCK_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: "N-01",
-    type: "audit",
-    title: "Audit Discrepancy Flagged",
-    description: "MacBook Pro M2 (AF-0112) reported missing during Q3 Hardware Verification.",
-    timestamp: "10 mins ago",
-    priority: "critical",
-    isRead: false,
-  },
-  {
-    id: "N-02",
-    type: "approval",
-    title: "Transfer Request Approved",
-    description: "Asset Transfer #TR-1049 (Dell XPS 15) has been approved by Emily Davis.",
-    timestamp: "1 hour ago",
-    priority: "high",
-    isRead: false,
-  },
-  {
-    id: "N-03",
-    type: "maintenance",
-    title: "Maintenance Completed",
-    description: "Technician resolved issue on Projector X1 (AF-0050) in Meeting Room A.",
-    timestamp: "3 hours ago",
-    priority: "low",
-    isRead: false,
-  },
-  {
-    id: "N-04",
-    type: "booking",
-    title: "Booking Reminder",
-    description: "Your booking for Conference Room B starts in 15 minutes.",
-    timestamp: "Yesterday, 02:45 PM",
-    priority: "medium",
-    isRead: true,
-  },
-  {
-    id: "N-05",
-    type: "approval",
-    title: "Maintenance Approved",
-    description: "Maintenance request #MR-2022 (Office Chair) approved and assigned to IT.",
-    timestamp: "Yesterday, 10:15 AM",
-    priority: "medium",
-    isRead: true,
-  },
-];
+export const MOCK_NOTIFICATIONS: AppNotification[] = [];
 
-const MOCK_LOGS: ActivityLog[] = [
-  { id: "L-01", timestamp: "2026-07-12 11:45 AM", user: "Alex Wong", role: "Asset Manager", action: "Flagged Missing", module: "Audit", target: "AF-0112 (MacBook Pro)", status: "warning", ipAddress: "192.168.1.45" },
-  { id: "L-02", timestamp: "2026-07-12 10:30 AM", user: "Emily Davis", role: "Department Head", action: "Approved Request", module: "Approvals", target: "Transfer #TR-1049", status: "success", ipAddress: "192.168.1.12" },
-  { id: "L-03", timestamp: "2026-07-12 09:15 AM", user: "System", role: "System", action: "Auto-Assigned", module: "Maintenance", target: "Technician John to MR-2022", status: "success", ipAddress: "127.0.0.1" },
-  { id: "L-04", timestamp: "2026-07-11 04:20 PM", user: "Rahul Sharma", role: "Employee", action: "Created Booking", module: "Resource Booking", target: "Conference Room B", status: "success", ipAddress: "192.168.1.88" },
-  { id: "L-05", timestamp: "2026-07-11 02:10 PM", user: "Admin User", role: "Admin", action: "Failed Login", module: "Authentication", target: "Admin Account", status: "failed", ipAddress: "10.0.0.5" },
-];
+const MOCK_LOGS: ActivityLog[] = [];
 
 function PriorityBadge({ priority }: { priority: Priority }) {
   const meta = {
@@ -127,12 +78,34 @@ function getIconForType(type: string) {
 
 export function NotificationsLogs({ role }: { role: Role }) {
   const [activeTab, setActiveTab] = useState("notifications");
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
 
   const canViewLogs = role === "admin" || role === "asset_manager" || role === "department_head";
 
+  async function loadData() {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      const notifs = await getNotifications(user.uid);
+      setNotifications(notifs);
+
+      if (canViewLogs) {
+        const logs = await getActivityLogs();
+        setActivityLogs(logs);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  React.useEffect(() => {
+    loadData();
+  }, [activeTab, canViewLogs]);
+
   const unreadCount = notifications.filter(
+
     notification => !notification.isRead
   ).length;
 
@@ -147,18 +120,28 @@ export function NotificationsLogs({ role }: { role: Role }) {
     { label: "Critical Alerts", value: "1", icon: AlertCircle, cls: "text-red-500 bg-red-50" },
   ];
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    toast.success("All notifications marked as read");
+  const markAllRead = async () => {
+    try {
+      const unreads = notifications.filter(n => !n.isRead);
+      await Promise.all(unreads.map(n => markNotifRead(n.id)));
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      toast.success("All notifications marked as read");
+    } catch(e) {}
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  const markAsRead = async (id: string) => {
+    try {
+      await markNotifRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch(e) {}
   };
 
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    toast.success("Notification deleted");
+  const deleteNotification = async (id: string) => {
+    try {
+      await delNotif(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      toast.success("Notification deleted");
+    } catch(e) {}
   };
 
   return (
@@ -355,7 +338,7 @@ export function NotificationsLogs({ role }: { role: Role }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {MOCK_LOGS.map(log => (
+                      {activityLogs.map(log => (
                         <tr key={log.id} className="border-b border-border/60 last:border-0 hover:bg-muted/40">
                           <td className="whitespace-nowrap px-4 py-3 text-xs tabular text-muted-foreground">{log.timestamp}</td>
                           <td className="px-4 py-3">
