@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Building2,
   Tags,
@@ -23,35 +23,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { type Role } from "./Sidebar";
 
+// Services and types integration
+import { 
+  getDepartments, 
+  createDepartment, 
+  updateDepartment, 
+  getCategories, 
+  createCategory, 
+  updateCategory, 
+  getEmployees, 
+  updateEmployee 
+} from "../../services/orgService";
+import { promoteUser } from "../../services/authService";
+import { UserRole } from "../../services/types";
+
 type Department = { id: string; name: string; head: string; parent: string; employees: number; status: "active" | "inactive" };
 type AssetCategory = { id: string; name: string; description: string; assetsCount: number; warrantyPeriod: string; status: "active" | "inactive" };
 type Employee = { id: string; name: string; email: string; department: string; role: string; status: "active" | "inactive" };
 
-
-const MOCK_DEPARTMENTS: Department[] = [
-  { id: "D1", name: "Engineering", head: "Sarah Jenkins", parent: "N/A", employees: 85, status: "active" },
-  { id: "D2", name: "Information Technology", head: "Mike Ross", parent: "Engineering", employees: 42, status: "active" },
-  { id: "D3", name: "Sales", head: "Emily Davis", parent: "N/A", employees: 110, status: "active" },
-];
-
-const MOCK_CATEGORIES: AssetCategory[] = [
-  { id: "C1", name: "Laptops", description: "Standard issue and high-performance laptops", assetsCount: 450, warrantyPeriod: "3 Years", status: "active" },
-  { id: "C2", name: "Monitors", description: "External displays and monitors", assetsCount: 320, warrantyPeriod: "2 Years", status: "active" },
-  { id: "C3", name: "Furniture", description: "Chairs, desks, and office equipment", assetsCount: 890, warrantyPeriod: "5 Years", status: "active" },
-];
-
-const MOCK_EMPLOYEES: Employee[] = [
-  { id: "E1", name: "Alex Wong", email: "alex.wong@company.com", department: "Engineering", role: "Asset Manager", status: "active" },
-  { id: "E2", name: "Sarah Jenkins", email: "sarah.j@company.com", department: "Engineering", role: "Department Head", status: "active" },
-  { id: "E3", name: "John Doe", email: "john.doe@company.com", department: "IT", role: "Employee", status: "active" },
-];
-
 export function OrganizationSetup({ role }: { role: Role }) {
   const [activeTab, setActiveTab] = useState("departments");
+  const [loading, setLoading] = useState(true);
 
-  const [departments, setDepartments] = useState(MOCK_DEPARTMENTS);
-  const [categories, setCategories] = useState(MOCK_CATEGORIES);
-  const [employees, setEmployees] = useState(MOCK_EMPLOYEES);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [categories, setCategories] = useState<AssetCategory[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Modals state
   const [deptModalOpen, setDeptModalOpen] = useState(false);
@@ -71,6 +71,72 @@ export function OrganizationSetup({ role }: { role: Role }) {
   const [catForm, setCatForm] = useState({ name: "", desc: "", warranty: "", status: "active" });
   const [promoteForm, setPromoteForm] = useState({ role: "" });
   const [editEmpForm, setEditEmpForm] = useState({ name: "", email: "", department: "", role: "", status: "active" });
+
+  // Load data from Firestore
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [depts, cats, emps] = await Promise.all([
+        getDepartments(),
+        getCategories(),
+        getEmployees()
+      ]);
+      
+      const mappedDepts: Department[] = depts.map(d => {
+        const headUser = emps.find(e => e.uid === d.headId);
+        const headName = headUser ? headUser.displayName : "Unassigned";
+        const deptEmpsCount = emps.filter(e => e.departmentId === d.id).length;
+        return {
+          id: d.id,
+          name: d.name,
+          head: headName,
+          parent: "N/A",
+          employees: deptEmpsCount,
+          status: d.status
+        };
+      });
+
+      const mappedCats: AssetCategory[] = cats.map(c => ({
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        assetsCount: 0,
+        warrantyPeriod: c.warrantyPeriod,
+        status: c.status
+      }));
+
+      const mappedEmps: Employee[] = emps.map(e => {
+        const dept = depts.find(d => d.id === e.departmentId);
+        const deptName = dept ? dept.name : "Unassigned";
+        
+        let roleLabel = "Employee";
+        if (e.role === "admin") roleLabel = "Admin";
+        else if (e.role === "asset_manager") roleLabel = "Asset Manager";
+        else if (e.role === "department_head") roleLabel = "Department Head";
+
+        return {
+          id: e.uid,
+          name: e.displayName,
+          email: e.email,
+          department: deptName,
+          role: roleLabel,
+          status: "active"
+        };
+      });
+
+      setDepartments(mappedDepts);
+      setCategories(mappedCats);
+      setEmployees(mappedEmps);
+    } catch (err) {
+      toast.error("Failed to load organization setup data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const activeManagersCount = employees.filter(e => e.role === "Asset Manager" || e.role === "Department Head" || e.role === "Admin").length;
 
@@ -95,90 +161,154 @@ export function OrganizationSetup({ role }: { role: Role }) {
     );
   }
 
-  const handleSaveDept = () => {
+  const handleSaveDept = async () => {
     if (!deptForm.name) return toast.error("Department Name is required");
     if (departments.some(d => d.name.toLowerCase() === deptForm.name.toLowerCase())) return toast.error("Department Name must be unique");
 
-    const newDept: Department = {
-      id: `D${departments.length + 1}`,
-      name: deptForm.name,
-      head: deptForm.head || "Unassigned",
-      parent: deptForm.parent || "N/A",
-      employees: 0,
-      status: deptForm.status as "active" | "inactive"
-    };
-    setDepartments([...departments, newDept]);
-    setDeptModalOpen(false);
-    setDeptForm({ name: "", head: "", parent: "", desc: "", status: "active" });
-    toast.success("Department created");
+    try {
+      const headEmp = employees.find(e => e.name.toLowerCase() === deptForm.head.toLowerCase());
+      const headId = headEmp ? headEmp.id : null;
+
+      await createDepartment(deptForm.name, headId, null, deptForm.desc);
+      await loadData();
+      setDeptModalOpen(false);
+      setDeptForm({ name: "", head: "", parent: "", desc: "", status: "active" });
+      toast.success("Department created");
+    } catch (err) {
+      toast.error("Failed to save department");
+    }
   };
 
-  const handleSaveCat = () => {
+  const handleSaveCat = async () => {
     if (!catForm.name) return toast.error("Category Name is required");
     if (categories.some(c => c.name.toLowerCase() === catForm.name.toLowerCase())) return toast.error("Category Name must be unique");
 
-    const newCat: AssetCategory = {
-      id: `C${categories.length + 1}`,
-      name: catForm.name,
-      description: catForm.desc,
-      assetsCount: 0,
-      warrantyPeriod: catForm.warranty || "N/A",
-      status: catForm.status as "active" | "inactive"
-    };
-    setCategories([...categories, newCat]);
-    setCatModalOpen(false);
-    setCatForm({ name: "", desc: "", warranty: "", status: "active" });
-    toast.success("Category created");
+    try {
+      await createCategory(catForm.name, catForm.desc, catForm.warranty);
+      await loadData();
+      setCatModalOpen(false);
+      setCatForm({ name: "", desc: "", warranty: "", status: "active" });
+      toast.success("Category created");
+    } catch (err) {
+      toast.error("Failed to save asset category");
+    }
   };
 
-  const handlePromote = () => {
+  const handlePromote = async () => {
     if (!promoteForm.role) return toast.error("Please select a role");
     if (promoteModalOpen.empId) {
-      setEmployees(prev => prev.map(e => e.id === promoteModalOpen.empId ? { ...e, role: promoteForm.role } : e));
-      toast.success("Employee role updated");
+      try {
+        let roleVal: UserRole = "employee";
+        if (promoteForm.role === "Admin") roleVal = "admin";
+        else if (promoteForm.role === "Asset Manager") roleVal = "asset_manager";
+        else if (promoteForm.role === "Department Head") roleVal = "department_head";
+
+        await promoteUser(promoteModalOpen.empId, roleVal);
+        await loadData();
+        toast.success("Employee role updated");
+      } catch (err) {
+        toast.error("Failed to promote employee");
+      }
     }
     setPromoteModalOpen({open: false, empId: null});
     setPromoteForm({ role: "" });
   };
 
-  const toggleDeptStatus = (id: string) => {
-    setDepartments(prev => prev.map(d => d.id === id ? { ...d, status: d.status === "active" ? "inactive" : "active" } : d));
-    toast.success("Department status updated");
+  const toggleDeptStatus = async (id: string) => {
+    const dept = departments.find(d => d.id === id);
+    if (!dept) return;
+    const nextStatus = dept.status === "active" ? "inactive" : "active";
+    try {
+      await updateDepartment(id, { status: nextStatus });
+      await loadData();
+      toast.success("Department status updated");
+    } catch (err) {
+      toast.error("Failed to toggle department status");
+    }
   };
 
-  const toggleCatStatus = (id: string) => {
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, status: c.status === "active" ? "inactive" : "active" } : c));
-    toast.success("Category status updated");
+  const toggleCatStatus = async (id: string) => {
+    const cat = categories.find(c => c.id === id);
+    if (!cat) return;
+    const nextStatus = cat.status === "active" ? "inactive" : "active";
+    try {
+      await updateCategory(id, { status: nextStatus });
+      await loadData();
+      toast.success("Category status updated");
+    } catch (err) {
+      toast.error("Failed to toggle category status");
+    }
   };
 
   const toggleEmpStatus = (id: string) => {
+    // Front-end status toggle placeholder
     setEmployees(prev => prev.map(e => e.id === id ? { ...e, status: e.status === "active" ? "inactive" : "active" } : e));
     toast.success("Employee status updated");
   };
 
-  const handleEditDept = () => {
+  const handleEditDept = async () => {
     if (!deptForm.name) return toast.error("Department Name is required");
     if (editDeptModalOpen.id) {
-      setDepartments(prev => prev.map(d => d.id === editDeptModalOpen.id ? { ...d, name: deptForm.name, head: deptForm.head, parent: deptForm.parent, status: deptForm.status as "active" | "inactive" } : d));
-      toast.success("Department updated");
+      try {
+        const headEmp = employees.find(e => e.name.toLowerCase() === deptForm.head.toLowerCase());
+        const headId = headEmp ? headEmp.id : null;
+
+        await updateDepartment(editDeptModalOpen.id, {
+          name: deptForm.name,
+          headId,
+          status: deptForm.status as "active" | "inactive"
+        });
+        await loadData();
+        toast.success("Department updated");
+      } catch (err) {
+        toast.error("Failed to update department");
+      }
     }
     setEditDeptModalOpen({open: false, id: null});
   };
 
-  const handleEditCat = () => {
+  const handleEditCat = async () => {
     if (!catForm.name) return toast.error("Category Name is required");
     if (editCatModalOpen.id) {
-      setCategories(prev => prev.map(c => c.id === editCatModalOpen.id ? { ...c, name: catForm.name, description: catForm.desc, warrantyPeriod: catForm.warranty, status: catForm.status as "active" | "inactive" } : c));
-      toast.success("Category updated");
+      try {
+        await updateCategory(editCatModalOpen.id, {
+          name: catForm.name,
+          description: catForm.desc,
+          warrantyPeriod: catForm.warranty,
+          status: catForm.status as "active" | "inactive"
+        });
+        await loadData();
+        toast.success("Category updated");
+      } catch (err) {
+        toast.error("Failed to update category");
+      }
     }
     setEditCatModalOpen({open: false, id: null});
   };
 
-  const handleEditEmp = () => {
+  const handleEditEmp = async () => {
     if (!editEmpForm.name) return toast.error("Name is required");
     if (editEmpModalOpen.id) {
-      setEmployees(prev => prev.map(e => e.id === editEmpModalOpen.id ? { ...e, name: editEmpForm.name, email: editEmpForm.email, department: editEmpForm.department, role: editEmpForm.role, status: editEmpForm.status as "active" | "inactive" } : e));
-      toast.success("Employee updated");
+      try {
+        const matchedDept = departments.find(d => d.name.toLowerCase() === editEmpForm.department.toLowerCase());
+        const deptId = matchedDept ? matchedDept.id : null;
+
+        let roleVal: UserRole = "employee";
+        if (editEmpForm.role === "Admin") roleVal = "admin";
+        else if (editEmpForm.role === "Asset Manager") roleVal = "asset_manager";
+        else if (editEmpForm.role === "Department Head") roleVal = "department_head";
+
+        await updateEmployee(editEmpModalOpen.id, {
+          displayName: editEmpForm.name,
+          email: editEmpForm.email,
+          departmentId: deptId,
+          role: roleVal
+        });
+        await loadData();
+        toast.success("Employee updated");
+      } catch (err) {
+        toast.error("Failed to update employee");
+      }
     }
     setEditEmpModalOpen({open: false, id: null});
   };
@@ -197,6 +327,28 @@ export function OrganizationSetup({ role }: { role: Role }) {
     setEditEmpForm({ name: emp.name, email: emp.email, department: emp.department, role: emp.role, status: emp.status });
     setEditEmpModalOpen({ open: true, id: emp.id });
   };
+
+  // Filter lists based on search and status
+  const filterList = <T extends { name: string, status: string }>(list: T[]): T[] => {
+    return list.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  const filteredDepts = filterList(departments);
+  const filteredCats = filterList(categories);
+  
+  // Custom filter for employees since they search name & email & department
+  const filteredEmployees = employees.filter(e => {
+    const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          e.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          e.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          e.role.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || e.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-6 flex flex-col h-[calc(100vh-3.5rem)]">
@@ -246,7 +398,7 @@ export function OrganizationSetup({ role }: { role: Role }) {
       </div>
 
       <div className="card-surface flex-1 flex flex-col min-h-0 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setSearchQuery(""); setStatusFilter("all"); }} className="h-full flex flex-col">
           <div className="border-b border-border px-4 py-2 flex-shrink-0">
             <TabsList>
               <TabsTrigger value="departments">Department Management</TabsTrigger>
@@ -261,27 +413,39 @@ export function OrganizationSetup({ role }: { role: Role }) {
                 <Filter className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
                   className="h-8 w-[200px] rounded-md border border-input bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
-              <Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="h-8 w-[130px] text-xs">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="ghost" size="sm" className="h-8 text-xs">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 text-xs"
+                onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
+              >
                 Clear Filters
               </Button>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {activeTab === "departments" && (
+            {loading ? (
+              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                Loading data from database...
+              </div>
+            ) : activeTab === "departments" && (
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-background z-10 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <tr>
@@ -294,9 +458,9 @@ export function OrganizationSetup({ role }: { role: Role }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {departments.length === 0 ? (
+                  {filteredDepts.length === 0 ? (
                     <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No departments found.</td></tr>
-                  ) : departments.map(d => (
+                  ) : filteredDepts.map(d => (
                     <tr key={d.id} className="border-b border-border/60 hover:bg-muted/40">
                       <td className="px-4 py-3 font-medium text-foreground">{d.name}</td>
                       <td className="px-4 py-3">{d.head}</td>
@@ -320,7 +484,7 @@ export function OrganizationSetup({ role }: { role: Role }) {
               </table>
             )}
 
-            {activeTab === "categories" && (
+            {!loading && activeTab === "categories" && (
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-background z-10 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <tr>
@@ -333,9 +497,9 @@ export function OrganizationSetup({ role }: { role: Role }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {categories.length === 0 ? (
+                  {filteredCats.length === 0 ? (
                     <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No asset categories found.</td></tr>
-                  ) : categories.map(c => (
+                  ) : filteredCats.map(c => (
                     <tr key={c.id} className="border-b border-border/60 hover:bg-muted/40">
                       <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
                       <td className="px-4 py-3 text-muted-foreground">{c.description}</td>
@@ -359,7 +523,7 @@ export function OrganizationSetup({ role }: { role: Role }) {
               </table>
             )}
 
-            {activeTab === "employees" && (
+            {!loading && activeTab === "employees" && (
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-background z-10 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <tr>
@@ -372,9 +536,9 @@ export function OrganizationSetup({ role }: { role: Role }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {employees.length === 0 ? (
+                  {filteredEmployees.length === 0 ? (
                     <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No employees found.</td></tr>
-                  ) : employees.map(e => (
+                  ) : filteredEmployees.map(e => (
                     <tr key={e.id} className="border-b border-border/60 hover:bg-muted/40">
                       <td className="px-4 py-3 font-medium text-foreground">{e.name}</td>
                       <td className="px-4 py-3 text-muted-foreground">{e.email}</td>
