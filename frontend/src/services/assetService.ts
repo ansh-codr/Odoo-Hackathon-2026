@@ -108,7 +108,8 @@ export async function allocateAsset(
       status: "Allocated",
       assignedToId: userId,
       assignedToName: assigneeName,
-      departmentId: departmentId
+      departmentId: departmentId,
+      expectedReturnDate: dueDateStr || null
     });
 
     // Write new allocation record
@@ -217,6 +218,12 @@ export async function requestTransfer(assetId: string, toUserId: string): Promis
     "Asset Transfer Request",
     `A transfer request has been raised to assign asset ${assetData.name} to you.`
   );
+}
+
+export async function getTransferRequests(): Promise<TransferRequest[]> {
+  const colRef = collection(db, "transferRequests");
+  const snap = await getDocs(colRef);
+  return snap.docs.map(doc => doc.data() as TransferRequest);
 }
 
 export async function approveTransfer(requestId: string): Promise<void> {

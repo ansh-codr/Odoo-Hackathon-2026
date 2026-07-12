@@ -137,6 +137,10 @@ export async function approveMaintenanceRequest(requestId: string): Promise<void
       actionedById: currentUser.uid
     });
 
+    // Update asset status to Under_Maintenance on approval
+    const assetRef = doc(db, "assets", assetId);
+    transaction.update(assetRef, { status: "Under_Maintenance" });
+
     // Record asset history
     recordAssetHistory(
       transaction,

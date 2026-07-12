@@ -1,4 +1,4 @@
-import { Bell, Search, ChevronDown, HelpCircle } from "lucide-react";
+import { Bell, Search, ChevronDown, HelpCircle, Menu } from "lucide-react";
 import type { Role } from "./Sidebar";
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -16,10 +16,12 @@ export function Topbar({
   role,
   onRoleChange,
   onNavigate,
+  onMenuToggle,
 }: {
   role: Role;
   onRoleChange: (r: Role) => void;
   onNavigate: (key: string) => void;
+  onMenuToggle?: () => void;
 }) {
   const [user, setUser] = useState<User | null>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(3); // Default from mock
@@ -37,7 +39,15 @@ export function Topbar({
     return () => window.removeEventListener("notifications-update", handleUpdate);
   }, []);
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-5">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-3 sm:px-5">
+      {onMenuToggle && (
+        <button 
+          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
+          onClick={onMenuToggle}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
       {/* Search */}
       <div className="relative flex max-w-xl flex-1 items-center">
         <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />

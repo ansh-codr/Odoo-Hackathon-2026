@@ -98,7 +98,7 @@ function Login() {
       <div className="login-orb-2" />
 
       {/* Content */}
-      <div style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
+      <div style={{ width: "100%", maxWidth: 440, padding: "0 16px", position: "relative", zIndex: 1 }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: 16, background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.2)", marginBottom: 20 }}>

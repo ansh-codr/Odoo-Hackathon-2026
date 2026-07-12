@@ -22,61 +22,36 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-
-type BookingStatus = "upcoming" | "ongoing" | "completed" | "cancelled";
-
-type Booking = {
-  id: string;
-  resource: string;
-  category: string;
-  bookedBy: string;
-  department: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  status: BookingStatus;
-};
+import { getBookings, createBooking, cancelBooking } from "../../services/bookingService";
+import { getAssets } from "../../services/assetService";
+import { getDepartments } from "../../services/orgService";
+import { Booking, Asset, Department } from "../../services/types";
 
 
-export const INITIAL_BOOKINGS: Booking[] = [
-  {
-    id: "B-1001",
-    resource: "Meeting Room B2",
-    category: "Space",
-    bookedBy: "Sarah Jenkins",
-    department: "Marketing",
-    date: "2026-07-12",
-    startTime: "09:00",
-    endTime: "10:00",
-    status: "completed",
-  },
-  {
-    id: "B-1002",
-    resource: "Projector X1",
-    category: "Equipment",
-    bookedBy: "David Chen",
-    department: "Engineering",
-    date: "2026-07-12",
-    startTime: "14:00",
-    endTime: "16:00",
-    status: "ongoing",
-  },
-  {
-    id: "B-1003",
-    resource: "Company Van (Ford Transit)",
-    category: "Vehicle",
-    bookedBy: "Mike Ross",
-    department: "Logistics",
-    date: "2026-07-13",
-    startTime: "08:00",
-    endTime: "18:00",
-    status: "upcoming",
-  },
-];
 
 export function ResourceBookings() {
   const [view, setView] = useState<"list" | "calendar">("list");
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  
+  useEffect(() => {
+    async function load() {
+      try {
+        const [bkgs, asts, depts] = await Promise.all([
+          getBookings(),
+          getAssets(),
+          getDepartments()
+        ]);
+        setBookings(bkgs);
+        setAssets(asts.filter(a => a.sharedResource || a.categoryId === "Vehicle" || a.categoryId === "Space"));
+        setDepartments(depts);
+      } catch (err) {
+        toast.error("Failed to load booking data");
+      }
+    }
+    load();
+  }, []);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
@@ -95,9 +70,9 @@ export function ResourceBookings() {
   const [editFormError, setEditFormError] = useState("");
 
   const totalBookings = bookings.length;
-  const activeBookings = bookings.filter(b => b.status === "ongoing").length;
-  const upcomingBookings = bookings.filter(b => b.status === "upcoming").length;
-  const validBookings = bookings.filter(b => b.status !== "cancelled").length;
+  const activeBookings = bookings.filter(b => b.status === "CheckedIn").length;
+  const upcomingBookings = bookings.filter(b => b.status === "Reserved").length;
+  const validBookings = bookings.filter(b => b.status !== "Cancelled").length;
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("bookings-update", { detail: validBookings }));
@@ -110,7 +85,7 @@ export function ResourceBookings() {
     { label: "Available Resources", value: "36", delta: "3", trend: "down", icon: Package, sub: "ready to book" },
   ];
 
-  const handleCreateBooking = () => {
+  const handleCreateBooking = async () => {
     setFormError("");
 
     if (!newResource || !newDate || !newStart || !newEnd || !newDept) {
@@ -123,63 +98,45 @@ export function ResourceBookings() {
       return;
     }
 
-    const bookingDate = new Date(newDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (bookingDate < today) {
-      setFormError("Cannot create a booking in the past.");
-      return;
+    try {
+      const selectedAsset = assets.find(a => a.id === newResource);
+      if (!selectedAsset) throw new Error("Invalid asset");
+      
+      const newB = await createBooking({
+        assetId: selectedAsset.id,
+        assetName: selectedAsset.name,
+        departmentId: newDept,
+        date: newDate,
+        startTime: newStart,
+        endTime: newEnd,
+        purpose: newPurpose
+      });
+      setBookings(prev => [newB, ...prev]);
+      setIsNewModalOpen(false);
+      toast.success("Booking Confirmed");
+      
+      setNewResource("");
+      setNewDate("");
+      setNewStart("");
+      setNewEnd("");
+      setNewPurpose("");
+      setNewDept("");
+    } catch (err: any) {
+      setFormError(err.message || "Failed to create booking");
     }
-
-    // Overlap Prevention Logic
-    const hasOverlap = bookings.some((b) => {
-      if (b.resource !== newResource) return false;
-      if (b.date !== newDate) return false;
-      if (b.status === "cancelled") return false;
-
-      // Overlap condition:
-      // (Start A < End B) and (End A > Start B)
-      return newStart < b.endTime && newEnd > b.startTime;
-    });
-
-    if (hasOverlap) {
-      setFormError("This resource is already booked during the selected time slot.");
-      return;
-    }
-
-    const newBooking: Booking = {
-      id: `B-${1000 + bookings.length + 1}`,
-      resource: newResource,
-      category: "Space", // Mocking category for demo
-      bookedBy: "Current User",
-      department: newDept,
-      date: newDate,
-      startTime: newStart,
-      endTime: newEnd,
-      status: "upcoming",
-    };
-
-    setBookings((prev) => [newBooking, ...prev]);
-    setIsNewModalOpen(false);
-    toast.success("Booking Confirmed", {
-      description: `Successfully booked ${newResource}.`,
-    });
-    
-    // Reset form
-    setNewResource("");
-    setNewDate("");
-    setNewStart("");
-    setNewEnd("");
-    setNewPurpose("");
-    setNewDept("");
   };
 
-  const handleCancelBooking = (id: string) => {
-    setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status: "cancelled" } : b))
-    );
-    setSelectedBooking(null);
-    toast.success("Booking Cancelled");
+  const handleCancelBooking = async (id: string) => {
+    try {
+      await cancelBooking(id);
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status: "Cancelled" } as Booking : b))
+      );
+      setSelectedBooking(null);
+      toast.success("Booking Cancelled");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel booking");
+    }
   };
 
   const openEditModal = (booking: Booking) => {
@@ -370,12 +327,12 @@ export function ResourceBookings() {
                       className="border-b border-border/60 last:border-0 hover:bg-muted/40"
                     >
                       <td className="px-4 py-2.5">
-                        <div className="font-medium text-foreground">{b.resource}</div>
-                        <div className="text-[11px] text-muted-foreground">{b.category}</div>
+                        <div className="font-medium text-foreground">{b.assetName}</div>
+                        <div className="text-[11px] text-muted-foreground"></div>
                       </td>
                       <td className="whitespace-nowrap px-4 py-2.5">
-                        <div className="font-medium text-foreground">{b.bookedBy}</div>
-                        <div className="text-[11px] text-muted-foreground">{b.department}</div>
+                        <div className="font-medium text-foreground">{b.userName}</div>
+                        <div className="text-[11px] text-muted-foreground">{departments.find(d => d.id === b.departmentId)?.name || b.departmentId}</div>
                       </td>
                       <td className="whitespace-nowrap px-4 py-2.5 text-foreground tabular">
                         {b.date}
@@ -453,10 +410,7 @@ export function ResourceBookings() {
                   <SelectValue placeholder="e.g. Meeting Room B2" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Meeting Room B2">Meeting Room B2</SelectItem>
-                  <SelectItem value="Meeting Room A1">Meeting Room A1</SelectItem>
-                  <SelectItem value="Projector X1">Projector X1</SelectItem>
-                  <SelectItem value="Company Van (Ford Transit)">Company Van (Ford Transit)</SelectItem>
+                  {assets.map(a => (<SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
@@ -499,10 +453,7 @@ export function ResourceBookings() {
                   <SelectValue placeholder="Select Department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Engineering">Engineering</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Logistics">Logistics</SelectItem>
-                  <SelectItem value="HR">HR</SelectItem>
+                  {departments.map(d => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
@@ -539,7 +490,7 @@ export function ResourceBookings() {
               <div>
                 <h4 className="text-sm font-semibold mb-2">Resource Information</h4>
                 <div className="rounded-md border border-border p-3 text-sm">
-                  <div className="font-medium">{selectedBooking.resource}</div>
+                  <div className="font-medium">{selectedBooking.assetName}</div>
                   <div className="text-muted-foreground text-xs">{selectedBooking.category}</div>
                 </div>
               </div>
@@ -549,7 +500,7 @@ export function ResourceBookings() {
                 <div className="grid gap-2 text-sm">
                   <div className="flex justify-between py-1 border-b border-border/50">
                     <span className="text-muted-foreground">Booked By</span>
-                    <span className="font-medium">{selectedBooking.bookedBy} ({selectedBooking.department})</span>
+                    <span className="font-medium">{selectedBooking.userName} ({departments.find(d => d.id === selectedBooking.departmentId)?.name || selectedBooking.departmentId})</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-border/50">
                     <span className="text-muted-foreground">Date</span>
@@ -614,10 +565,7 @@ export function ResourceBookings() {
                   <SelectValue placeholder="e.g. Meeting Room B2" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Meeting Room B2">Meeting Room B2</SelectItem>
-                  <SelectItem value="Meeting Room A1">Meeting Room A1</SelectItem>
-                  <SelectItem value="Projector X1">Projector X1</SelectItem>
-                  <SelectItem value="Company Van (Ford Transit)">Company Van (Ford Transit)</SelectItem>
+                  {assets.map(a => (<SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
@@ -660,10 +608,7 @@ export function ResourceBookings() {
                   <SelectValue placeholder="Select Department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Engineering">Engineering</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Logistics">Logistics</SelectItem>
-                  <SelectItem value="HR">HR</SelectItem>
+                  {departments.map(d => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>

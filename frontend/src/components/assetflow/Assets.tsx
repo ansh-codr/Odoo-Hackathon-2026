@@ -102,7 +102,7 @@ export function Assets() {
     setPage("transfer");
   }
 
-  function allocateAsset(data: {
+  async function allocateAsset(data: {
     employee: string;
     department: string;
     allocationDate: string;
@@ -110,43 +110,40 @@ export function Assets() {
   }) {
     if (!selectedAsset) return;
 
-    setAssets((prev) =>
-      prev.map((asset) =>
-        asset.id === selectedAsset.id
-          ? {
-              ...asset,
-              assignedTo: data.employee,
-              location: data.department,
-              status: "Allocated",
-            }
-          : asset
-      )
-    );
-
-    setSelectedAsset(null);
-    setPage("list");
+    try {
+      const empId = data.employee === "none" ? null : data.employee;
+      const deptId = data.department === "none" ? null : data.department;
+      
+      await allocateAssetService(
+        selectedAsset.id,
+        empId,
+        deptId,
+        data.returnDate || null
+      );
+      
+      await fetchAssets();
+      toast.success("Asset allocated successfully");
+      setSelectedAsset(null);
+      setPage("list");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to allocate asset");
+    }
   }
 
-  function transferAsset(
+  async function transferAsset(
     assetId: string,
     employee: string,
     department: string
   ) {
-    setAssets((prev) =>
-      prev.map((asset) =>
-        asset.id === assetId
-          ? {
-              ...asset,
-              assignedTo: employee,
-              location: department,
-              status: "Allocated",
-            }
-          : asset
-      )
-    );
-
-    setSelectedAsset(null);
-    setPage("list");
+    try {
+      await requestTransfer(assetId, employee);
+      await fetchAssets();
+      toast.success("Transfer requested successfully");
+      setSelectedAsset(null);
+      setPage("list");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to request transfer");
+    }
   }
 
   const filteredAssets = useMemo(() => {

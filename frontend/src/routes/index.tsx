@@ -90,7 +90,7 @@ function Nav({ c, dark, onToggle }: any) {
         </Link>
 
         {/* Desktop nav */}
-        <nav style={{ display:"flex", gap:28, fontSize:14, fontWeight:500 }}>
+        <nav className="hidden md:flex gap-7 text-sm font-medium">
           {links.map(([h,l]) => (
             <a key={h} href={h} style={{ color:c.muted, textDecoration:"none" }}
               onMouseEnter={e=>(e.currentTarget.style.color=c.text)}
@@ -108,7 +108,7 @@ function Nav({ c, dark, onToggle }: any) {
             style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 18px", borderRadius:10, background:"linear-gradient(135deg,#7c3aed,#a855f7)", color:"#fff", fontWeight:700, fontSize:14, textDecoration:"none", boxShadow:"0 4px 18px rgba(124,58,237,0.38)" }}>
             Get Started <ArrowRight size={14}/>
           </Link>
-          <button onClick={()=>setOpen(!open)} style={{ background:"none", border:"none", cursor:"pointer", color:c.text, padding:6 }}>
+          <button onClick={()=>setOpen(!open)} className="md:hidden" style={{ background:"none", border:"none", cursor:"pointer", color:c.text, padding:6 }}>
             {open ? <X size={20}/> : <Menu size={20}/>}
           </button>
         </div>
@@ -323,7 +323,7 @@ function Services({ c }: any) {
           </p>
         </div>
 
-        <div style={{ display:"grid", gridTemplateColumns:"260px 1fr", gap:20, alignItems:"start" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-5 items-start">
           {/* Tabs */}
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {svcs.map((sv,i)=>{
@@ -538,8 +538,8 @@ function Footer({ c, dark }: any) {
   return (
     <footer style={{ borderTop:`1px solid ${c.border}`, padding:"52px 24px 28px", background:dark?"rgba(0,0,0,0.45)":c.bg2 }}>
       <div style={{ maxWidth:1180, margin:"0 auto" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto auto auto", gap:"0 40px", alignItems:"start", flexWrap:"wrap" }}>
-          <div style={{ marginRight:20 }}>
+        <div className="grid grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto] gap-x-10 gap-y-12 items-start">
+          <div className="col-span-2 lg:col-span-1" style={{ marginRight:20 }}>
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
               <img src="/Fevicon.png" alt="Assera" style={{ height:30, width:30, borderRadius:8, objectFit:"contain" }}/>
               <span style={{ fontFamily:"Inter Tight,Inter,sans-serif", fontWeight:800, fontSize:17 }}>Assera</span>

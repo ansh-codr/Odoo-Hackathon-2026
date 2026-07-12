@@ -20,13 +20,19 @@ export const Route = createFileRoute("/app")({
 function AppShell() {
   const [role, setRole] = useState<Role>("admin");
   const [active, setActive] = useState("dashboard");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <Sidebar
         role={role}
         active={active}
-        onNavigate={setActive}
+        onNavigate={(key) => {
+          setActive(key);
+          setMobileMenuOpen(false);
+        }}
+        mobileOpen={mobileMenuOpen}
+        setMobileOpen={setMobileMenuOpen}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -34,6 +40,7 @@ function AppShell() {
           role={role}
           onRoleChange={setRole}
           onNavigate={setActive}
+          onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
         />
 
         <main className="flex-1 overflow-y-auto">

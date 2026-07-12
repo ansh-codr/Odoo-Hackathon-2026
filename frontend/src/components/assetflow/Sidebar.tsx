@@ -11,10 +11,11 @@ import {
   Building2,
   ChevronsLeft,
   ChevronsRight,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initialAssets } from "./data";
-import { INITIAL_BOOKINGS } from "./ResourceBookings";
+
 import { INITIAL_REQUESTS } from "./MaintenanceManagement";
 import { INITIAL_APPROVAL_REQUESTS } from "./ApprovalCenter";
 import { MOCK_NOTIFICATIONS } from "./NotificationsLogs";
@@ -47,15 +48,19 @@ export function Sidebar({
   role,
   active,
   onNavigate,
+  mobileOpen,
+  setMobileOpen,
 }: {
   role: Role;
   active: string;
   onNavigate: (key: string) => void;
+  mobileOpen?: boolean;
+  setMobileOpen?: (open: boolean) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(MOCK_NOTIFICATIONS.filter(n => !n.isRead).length);
   const [assetsCount, setAssetsCount] = useState<number | null>(initialAssets.length);
-  const [bookingsCount, setBookingsCount] = useState<number | null>(INITIAL_BOOKINGS.filter(b => b.status !== "cancelled").length);
+  const [bookingsCount, setBookingsCount] = useState<number | null>(0);
   const [maintenanceCount, setMaintenanceCount] = useState<number | null>(INITIAL_REQUESTS.filter(r => r.status === "pending").length);
   const [approvalsCount, setApprovalsCount] = useState<number | null>(INITIAL_APPROVAL_REQUESTS.filter(r => r.status === "pending").length);
 
@@ -86,12 +91,20 @@ export function Sidebar({
   }, []);
 
   return (
-    <aside
-      className={cn(
-        "flex h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200",
-        collapsed ? "w-[64px]" : "w-[240px]",
+    <>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileOpen?.(false)}
+        />
       )}
-    >
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 md:relative",
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          collapsed ? "w-[64px]" : "w-[240px]",
+        )}
+      >
       {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
         <img src="/Fevicon.png" alt="Assera Logo" className="h-7 w-7 shrink-0 object-contain rounded-md" />
@@ -104,6 +117,14 @@ export function Sidebar({
               Northwind Corp.
             </div>
           </div>
+        )}
+        {mobileOpen && (
+          <button 
+            className="md:hidden p-1 text-muted-foreground hover:text-foreground"
+            onClick={() => setMobileOpen?.(false)}
+          >
+            <X className="h-4 w-4" />
+          </button>
         )}
       </div>
 
@@ -169,16 +190,14 @@ export function Sidebar({
       {/* Collapse */}
       <div className="border-t border-sidebar-border p-2">
         <button
-          onClick={() => setCollapsed((c) => !c)}
-          className={cn(
-            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-sidebar-hover",
-            collapsed && "justify-center",
-          )}
+          onClick={() => setCollapsed(!collapsed)}
+          className="hidden h-8 w-full items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground md:flex"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
-          {!collapsed && <span>Collapse</span>}
         </button>
       </div>
     </aside>
+    </>
   );
 }
