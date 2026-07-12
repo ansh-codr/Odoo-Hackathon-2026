@@ -5,6 +5,7 @@ import { Sidebar, type Role } from "@/components/assetflow/Sidebar";
 import { Topbar } from "@/components/assetflow/Topbar";
 import { Dashboard } from "@/components/assetflow/Dashboard";
 import { ResourceBookings } from "@/components/assetflow/ResourceBookings";
+import { MaintenanceManagement } from "@/components/assetflow/MaintenanceManagement";
 import { Assets } from "@/components/assetflow/Assets";
 
 export const Route = createFileRoute("/app")({
@@ -36,6 +37,8 @@ function AppShell() {
             <Assets />
           ) : active === "bookings" ? (
             <ResourceBookings />
+          ) : active === "maintenance" ? (
+            <MaintenanceManagement />
           ) : (
             <div className="grid h-full place-items-center text-sm text-muted-foreground">
               <div className="text-center">

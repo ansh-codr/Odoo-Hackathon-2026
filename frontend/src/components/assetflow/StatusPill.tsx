@@ -7,9 +7,23 @@ export type AssetStatus =
   | "maintenance"
   | "lost"
   | "retired"
-  | "disposed";
+  | "disposed"
+  | "upcoming"
+  | "ongoing"
+  | "completed"
+  | "cancelled"
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "technician_assigned"
+  | "in_progress"
+  | "resolved"
+  | "low"
+  | "medium"
+  | "high"
+  | "critical";
 
-const STATUS_META: Record<AssetStatus | "upcoming" | "ongoing" | "completed" | "cancelled", { label: string; cls: string; dot: string }> = {
+const STATUS_META: Record<AssetStatus, { label: string; cls: string; dot: string }> = {
   available: {
     label: "Available",
     cls: "bg-status-available-bg text-status-available",
@@ -45,6 +59,11 @@ const STATUS_META: Record<AssetStatus | "upcoming" | "ongoing" | "completed" | "
     cls: "bg-status-disposed-bg text-status-disposed",
     dot: "bg-status-disposed",
   },
+  cancelled: {
+    label: "Cancelled",
+    cls: "bg-status-lost-bg text-status-lost",
+    dot: "bg-status-lost",
+  },
   upcoming: {
     label: "Upcoming",
     cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
@@ -60,10 +79,55 @@ const STATUS_META: Record<AssetStatus | "upcoming" | "ongoing" | "completed" | "
     cls: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
     dot: "bg-gray-500",
   },
-  cancelled: {
-    label: "Cancelled",
-    cls: "bg-status-lost-bg text-status-lost",
-    dot: "bg-status-lost",
+  pending: {
+    label: "Pending",
+    cls: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    dot: "bg-yellow-500",
+  },
+  approved: {
+    label: "Approved",
+    cls: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    dot: "bg-green-500",
+  },
+  rejected: {
+    label: "Rejected",
+    cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    dot: "bg-red-500",
+  },
+  technician_assigned: {
+    label: "Technician Assigned",
+    cls: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+    dot: "bg-indigo-500",
+  },
+  in_progress: {
+    label: "In Progress",
+    cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    dot: "bg-blue-500",
+  },
+  resolved: {
+    label: "Resolved",
+    cls: "bg-status-available-bg text-status-available",
+    dot: "bg-status-available",
+  },
+  low: {
+    label: "Low Priority",
+    cls: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+    dot: "bg-gray-500",
+  },
+  medium: {
+    label: "Medium Priority",
+    cls: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    dot: "bg-yellow-500",
+  },
+  high: {
+    label: "High Priority",
+    cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    dot: "bg-orange-500",
+  },
+  critical: {
+    label: "Critical",
+    cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    dot: "bg-red-500",
   },
 };
 
@@ -71,7 +135,7 @@ export function StatusPill({
   status,
   className,
 }: {
-  status: AssetStatus | "upcoming" | "ongoing" | "completed" | "cancelled";
+  status: AssetStatus;
   className?: string;
 }) {
   const meta = STATUS_META[status];
