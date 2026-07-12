@@ -37,7 +37,7 @@ export function Topbar({
     return () => window.removeEventListener("notifications-update", handleUpdate);
   }, []);
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/60 px-5 backdrop-blur">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-5">
       {/* Search */}
       <div className="relative flex max-w-xl flex-1 items-center">
         <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />

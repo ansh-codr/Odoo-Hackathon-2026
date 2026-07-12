@@ -134,8 +134,8 @@ function Hero({ c, dark }: any) {
         <div style={{ position:"absolute", inset:0,
           backgroundImage:`linear-gradient(${dark?"rgba(255,255,255,0.032)":"rgba(0,0,0,0.04)"} 1px,transparent 1px),linear-gradient(90deg,${dark?"rgba(255,255,255,0.032)":"rgba(0,0,0,0.04)"} 1px,transparent 1px)`,
           backgroundSize:"60px 60px" }} />
-        <div style={{ position:"absolute", top:"18%", left:"12%", width:320, height:320, borderRadius:"50%", background:"radial-gradient(circle,rgba(124,58,237,0.22),transparent 70%)", filter:"blur(70px)", animation:"floatA 8s ease-in-out infinite" }}/>
-        <div style={{ position:"absolute", bottom:"15%", right:"10%", width:240, height:240, borderRadius:"50%", background:"radial-gradient(circle,rgba(6,182,212,0.18),transparent 70%)", filter:"blur(60px)", animation:"floatB 11s ease-in-out infinite" }}/>
+        <div style={{ position:"absolute", top:"18%", left:"12%", width:320, height:320, borderRadius:"50%", background:"radial-gradient(circle,rgba(124,58,237,0.1),transparent 70%)" }}/>
+        <div style={{ position:"absolute", bottom:"15%", right:"10%", width:240, height:240, borderRadius:"50%", background:"radial-gradient(circle,rgba(6,182,212,0.08),transparent 70%)" }}/>
       </div>
 
       <div style={{ maxWidth:840, width:"100%", textAlign:"center", position:"relative", zIndex:1 }}>
@@ -253,7 +253,7 @@ function Features({ c }: any) {
                 </div>
                 <h3 style={{ fontFamily:"Inter Tight,Inter,sans-serif", fontWeight:700, fontSize:16, marginBottom:9 }}>{f.title}</h3>
                 <p style={{ color:c.muted, fontSize:14, lineHeight:1.75 }}>{f.body}</p>
-                <div style={{ position:"absolute", right:-16, bottom:-16, width:80, height:80, borderRadius:"50%", background:`${f.accent}15`, filter:"blur(24px)" }}/>
+                <div style={{ position:"absolute", right:-16, bottom:-16, width:80, height:80, borderRadius:"50%", background:`${f.accent}08` }}/>
               </div>
             );
           })}
@@ -497,8 +497,8 @@ function CTA({ c }: any) {
     <section style={{ padding:"80px 24px" }}>
       <div style={{ maxWidth:1180, margin:"0 auto" }}>
         <div style={{ borderRadius:28, padding:"80px 48px", textAlign:"center", background:"linear-gradient(135deg,#1e0a3c,#0e1a40,#072038)", border:"1px solid rgba(124,58,237,0.3)", position:"relative", overflow:"hidden" }}>
-          <div style={{ position:"absolute", top:-80, left:-60, width:280, height:280, borderRadius:"50%", background:"radial-gradient(circle,rgba(124,58,237,0.55),transparent 70%)", filter:"blur(60px)" }}/>
-          <div style={{ position:"absolute", bottom:-80, right:-60, width:220, height:220, borderRadius:"50%", background:"radial-gradient(circle,rgba(6,182,212,0.4),transparent 70%)", filter:"blur(60px)" }}/>
+          <div style={{ position:"absolute", top:-80, left:-60, width:280, height:280, borderRadius:"50%", background:"radial-gradient(circle,rgba(124,58,237,0.15),transparent 70%)" }}/>
+          <div style={{ position:"absolute", bottom:-80, right:-60, width:220, height:220, borderRadius:"50%", background:"radial-gradient(circle,rgba(6,182,212,0.1),transparent 70%)" }}/>
           <div style={{ position:"relative" }}>
             <Pill c={{pillPurple:{bg:"rgba(124,58,237,0.25)",br:"rgba(124,58,237,0.5)",tx:"#d8b4fe"}}} purple label="Get Started Today" icon={<Sparkles size={11}/>}/>
             <h2 style={{ fontFamily:"Inter Tight,Inter,sans-serif", fontWeight:900, fontSize:"clamp(2.5rem,6vw,4.2rem)", letterSpacing:"-0.03em", color:"#fff", lineHeight:1.05, marginTop:22, marginBottom:18 }}>
