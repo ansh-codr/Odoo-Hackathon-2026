@@ -48,7 +48,7 @@ export async function createMaintenanceRequest(
 
     // Rule 1: Only the current asset holder or authorized users (admin/asset_manager) can create a maintenance request
     const isAuthorized = userRole === "admin" || userRole === "asset_manager";
-    const isHolder = asset.assignedToUid === currentUser.uid;
+    const isHolder = asset.assignedToId === currentUser.uid;
 
     if (!isAuthorized && !isHolder) {
       throw new Error("Only the current asset custodian or an Asset Manager can request maintenance for this asset.");

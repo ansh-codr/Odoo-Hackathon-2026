@@ -11,6 +11,24 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
+const withTimeout = <T extends unknown>(promise: Promise<T>, timeoutMs: number = 10000, errorMsg: string): Promise<T> => {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(errorMsg));
+    }, timeoutMs);
+
+    promise
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+};
+
 function Login() {
   const navigate = useNavigate();
   const [dark, setDark] = useState(() => {
@@ -43,17 +61,34 @@ function Login() {
     setError(null);
     try {
       if (isSignUp) {
-        const userCred = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCred.user, { displayName: name });
+        const userCred = await withTimeout(
+          createUserWithEmailAndPassword(auth, email, password),
+          10000,
+          "Sign-up request timed out after 10 seconds. Check your internet connection or Firebase setup."
+        );
+        await withTimeout(
+          updateProfile(userCred.user, { displayName: name }),
+          10000,
+          "Profile update timed out."
+        );
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        await withTimeout(
+          signInWithEmailAndPassword(auth, email, password),
+          10000,
+          "Login request timed out after 10 seconds. Check your internet connection or Firebase setup."
+        );
       }
       navigate({ to: "/app" });
     } catch (err: any) {
+      console.error("Authentication error details:", err);
       if (isSignUp) {
         setError(err.message || "Failed to create account. Please try again.");
       } else {
-        setError("Invalid email or password. Please try again.");
+        if (err.message && err.message.includes("timed out")) {
+          setError(err.message);
+        } else {
+          setError("Invalid email or password. Please try again.");
+        }
       }
     } finally {
       setLoading(false);
@@ -65,10 +100,19 @@ function Login() {
     setError(null);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await withTimeout(
+        signInWithPopup(auth, provider),
+        10000,
+        "Google sign-in request timed out after 10 seconds. Check your internet connection or Firebase setup."
+      );
       navigate({ to: "/app" });
     } catch (err: any) {
-      setError("Failed to sign in with Google. Please try again.");
+      console.error("Google sign-in error details:", err);
+      if (err.message && err.message.includes("timed out")) {
+        setError(err.message);
+      } else {
+        setError("Failed to sign in with Google. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

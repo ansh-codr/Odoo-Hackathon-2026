@@ -16,6 +16,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -108,7 +109,12 @@ export function ReportsAnalytics() {
   const reservedCount = assets.filter(a => a.status === "Reserved").length;
   const maintenanceCount = assets.filter(a => a.status === "Under_Maintenance").length;
   const retiredCount = assets.filter(a => a.status === "Retired" || a.status === "Disposed").length;
-  const overdueCount = assets.filter(a => a.status === "Overdue").length;
+  const todayStr = new Date().toISOString().split("T")[0];
+  const overdueCount = assets.filter(a => 
+    a.status === "Allocated" && 
+    a.expectedReturnDate && 
+    a.expectedReturnDate < todayStr
+  ).length;
 
   const utilizationRate = totalAssets > 0 ? Math.round(((allocatedCount + reservedCount) / totalAssets) * 100) : 0;
 

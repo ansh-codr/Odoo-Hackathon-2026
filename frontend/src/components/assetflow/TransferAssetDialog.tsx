@@ -42,6 +42,7 @@ export function TransferAssetDialog({
   if (!asset) return null;
 
   function submit() {
+    if (!asset) return;
     onTransfer(asset.id, employee, department);
 
     setEmployee("");

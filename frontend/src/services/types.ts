@@ -76,6 +76,7 @@ export interface Asset {
   sharedResource?: boolean;
   photoUrl?: string;
   createdAt: number;
+  expectedReturnDate?: string;
 }
 
 export interface Allocation {
