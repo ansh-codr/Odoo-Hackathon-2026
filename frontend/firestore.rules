@@ -55,17 +55,27 @@ service cloud.firestore {
     
     match /transferRequests/{reqId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        resource.data.fromUserId == request.auth.uid || 
+        resource.data.toUserId == request.auth.uid || 
+        isManagerOrAdmin()
+      );
+      allow delete: if isManagerOrAdmin();
     }
     
     match /bookings/{bookingId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isManagerOrAdmin());
+      allow delete: if isManagerOrAdmin();
     }
     
     match /maintenanceRequests/{reqId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isManagerOrAdmin());
+      allow delete: if isManagerOrAdmin();
     }
     
     match /auditCycles/{cycleId} {
