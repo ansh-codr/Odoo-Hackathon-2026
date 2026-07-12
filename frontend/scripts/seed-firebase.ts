@@ -15,8 +15,9 @@ import * as fs from "fs";
 import * as path from "path";
 
 // Manually parse .env to get Firebase configuration
-const envPath = path.resolve(__dirname, "../.env");
+const envPath = path.resolve(process.cwd(), ".env");
 if (fs.existsSync(envPath)) {
+
   const envConfig = fs.readFileSync(envPath, "utf-8");
   envConfig.split("\n").forEach((line) => {
     const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
