@@ -13,7 +13,8 @@ import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  writeBatch
 } from "firebase/firestore";
 import * as fs from "fs";
 import * as path from "path";
@@ -400,8 +401,9 @@ async function seed() {
       });
     }
 
-    // 12. Seed 150 Activity Logs
-    console.log("Seeding 150 Activity Logs...");
+    // 12. Seed 150 Activity Logs in batch
+    console.log("Seeding 150 Activity Logs in batch...");
+    const batch = writeBatch(db);
     const actions = ["Register Asset", "Allocate Asset", "Return Asset", "Request Transfer", "Approve Transfer", "Create Booking", "Cancel Booking", "Create Maintenance Request", "Resolve Maintenance", "Create Audit Cycle", "Verify Audit Asset"];
     const details = [
       "Registered new asset MacBook Pro M3",
@@ -418,23 +420,23 @@ async function seed() {
     ];
 
     for (let i = 0; i < 150; i++) {
-      const logId = `LOG-${Date.now().toString().slice(-4)}-${i}`;
-      const docRef = doc(db, "activityLogs", logId);
-      const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) {
-        await setDoc(docRef, {
-          id: logId,
-          action: actions[i % actions.length],
-          details: `${details[i % details.length]} (Instance ${i})`,
-          userId: employees[i % employees.length].uid,
-          userName: employees[i % employees.length].displayName,
-          createdAt: Date.now() - (i * 2 * 60 * 60 * 1000)
-        });
-      }
+      const logId = `LOG-SEED-${1000 + i}`;
+      const logRef = doc(db, "activityLogs", logId);
+      batch.set(logRef, {
+        id: logId,
+        action: actions[i % actions.length],
+        details: `${details[i % details.length]} (Instance ${i})`,
+        userId: employees[i % employees.length].uid,
+        userName: employees[i % employees.length].displayName,
+        createdAt: Date.now() - (i * 2 * 60 * 60 * 1000)
+      });
     }
+    await batch.commit();
+    console.log("Successfully seeded 150 Activity Logs.");
 
-    // 13. Seed 40 Notifications
-    console.log("Seeding 40 Alert Notifications...");
+    // 13. Seed 40 Notifications in batch
+    console.log("Seeding 40 Alert Notifications in batch...");
+    const notifBatch = writeBatch(db);
     const titles = ["Booking Confirmed", "Transfer Requested", "Maintenance Approved", "Audit Cycle Scheduled", "Overdue Return Alert"];
     const bodies = [
       "Your reservation for Meeting Room A1 has been approved.",
@@ -445,21 +447,20 @@ async function seed() {
     ];
 
     for (let i = 0; i < 40; i++) {
-      const notifId = `NTF-${Date.now().toString().slice(-4)}-${i}`;
+      const notifId = `NTF-SEED-${1000 + i}`;
       const emp = employees[i % employees.length];
-      const docRef = doc(db, "notifications", notifId);
-      const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) {
-        await setDoc(docRef, {
-          id: notifId,
-          userId: emp.uid,
-          title: titles[i % titles.length],
-          body: bodies[i % bodies.length],
-          read: i % 3 === 0,
-          createdAt: Date.now() - (i * 4 * 60 * 60 * 1000)
-        });
-      }
+      const notifRef = doc(db, "notifications", notifId);
+      notifBatch.set(notifRef, {
+        id: notifId,
+        userId: emp.uid,
+        title: titles[i % titles.length],
+        body: bodies[i % bodies.length],
+        read: i % 3 === 0,
+        createdAt: Date.now() - (i * 4 * 60 * 60 * 1000)
+      });
     }
+    await notifBatch.commit();
+    console.log("Successfully seeded 40 Notifications.");
 
     console.log("All enterprise demo data seeded successfully!");
     process.exit(0);
