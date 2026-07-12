@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   CalendarClock,
   Clock,
@@ -37,14 +37,8 @@ type Booking = {
   status: BookingStatus;
 };
 
-const STATS = [
-  { label: "Total Bookings", value: "142", delta: "12%", trend: "up", icon: CalendarClock, sub: "this month" },
-  { label: "Active Bookings", value: "8", delta: "2", trend: "up", icon: Clock, sub: "currently ongoing" },
-  { label: "Upcoming Bookings", value: "24", delta: "5", trend: "up", icon: CheckCircle2, sub: "next 7 days" },
-  { label: "Available Resources", value: "36", delta: "3", trend: "down", icon: Package, sub: "ready to book" },
-];
 
-const INITIAL_BOOKINGS: Booking[] = [
+export const INITIAL_BOOKINGS: Booking[] = [
   {
     id: "B-1001",
     resource: "Meeting Room B2",
@@ -94,6 +88,27 @@ export function ResourceBookings() {
   const [newPurpose, setNewPurpose] = useState("");
   const [newDept, setNewDept] = useState("");
   const [formError, setFormError] = useState("");
+
+  // Edit Booking Form State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Booking>>({});
+  const [editFormError, setEditFormError] = useState("");
+
+  const totalBookings = bookings.length;
+  const activeBookings = bookings.filter(b => b.status === "ongoing").length;
+  const upcomingBookings = bookings.filter(b => b.status === "upcoming").length;
+  const validBookings = bookings.filter(b => b.status !== "cancelled").length;
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("bookings-update", { detail: validBookings }));
+  }, [validBookings]);
+
+  const STATS = [
+    { label: "Total Bookings", value: totalBookings.toString(), delta: "this month", trend: "up", icon: CalendarClock, sub: "all bookings" },
+    { label: "Active Bookings", value: activeBookings.toString(), delta: "currently ongoing", trend: "up", icon: Clock, sub: "in progress" },
+    { label: "Upcoming Bookings", value: upcomingBookings.toString(), delta: "scheduled", trend: "up", icon: CheckCircle2, sub: "upcoming" },
+    { label: "Available Resources", value: "36", delta: "3", trend: "down", icon: Package, sub: "ready to book" },
+  ];
 
   const handleCreateBooking = () => {
     setFormError("");
@@ -157,6 +172,56 @@ export function ResourceBookings() {
     setNewEnd("");
     setNewPurpose("");
     setNewDept("");
+  };
+
+  const handleCancelBooking = (id: string) => {
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: "cancelled" } : b))
+    );
+    setSelectedBooking(null);
+    toast.success("Booking Cancelled");
+  };
+
+  const openEditModal = (booking: Booking) => {
+    setEditForm(booking);
+    setEditFormError("");
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    setEditFormError("");
+
+    if (!editForm.resource || !editForm.date || !editForm.startTime || !editForm.endTime || !editForm.department) {
+      setEditFormError("Please fill in all mandatory fields.");
+      return;
+    }
+
+    if (editForm.startTime >= editForm.endTime) {
+      setEditFormError("End Time must be after Start Time.");
+      return;
+    }
+
+    const hasOverlap = bookings.some((b) => {
+      if (b.id === editForm.id) return false;
+      if (b.resource !== editForm.resource) return false;
+      if (b.date !== editForm.date) return false;
+      if (b.status === "cancelled") return false;
+      return editForm.startTime! < b.endTime && editForm.endTime! > b.startTime;
+    });
+
+    if (hasOverlap) {
+      setEditFormError("This resource is already booked during the selected time slot.");
+      return;
+    }
+
+    setBookings((prev) =>
+      prev.map((b) => (b.id === editForm.id ? ({ ...b, ...editForm } as Booking) : b))
+    );
+    setIsEditModalOpen(false);
+    setSelectedBooking(null);
+    toast.success("Booking Updated", {
+      description: `Successfully updated booking ${editForm.id}.`,
+    });
   };
 
   return (
@@ -521,14 +586,94 @@ export function ResourceBookings() {
               </div>
 
               <div className="flex gap-2 pt-4">
-                <Button variant="outline" className="flex-1">Edit</Button>
-                <Button variant="outline" className="flex-1">Reschedule</Button>
-                <Button variant="destructive" className="flex-1">Cancel</Button>
+                <Button variant="outline" className="flex-1" onClick={() => openEditModal(selectedBooking)}>Edit</Button>
+                <Button variant="outline" className="flex-1" onClick={() => openEditModal(selectedBooking)}>Reschedule</Button>
+                <Button variant="destructive" className="flex-1" onClick={() => handleCancelBooking(selectedBooking.id)}>Cancel</Button>
               </div>
             </div>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Edit Booking Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Booking</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {editFormError && (
+              <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+                {editFormError}
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label htmlFor="edit-resource">Select Resource *</Label>
+              <Select value={editForm.resource} onValueChange={(v) => setEditForm({ ...editForm, resource: v })}>
+                <SelectTrigger id="edit-resource">
+                  <SelectValue placeholder="e.g. Meeting Room B2" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Meeting Room B2">Meeting Room B2</SelectItem>
+                  <SelectItem value="Meeting Room A1">Meeting Room A1</SelectItem>
+                  <SelectItem value="Projector X1">Projector X1</SelectItem>
+                  <SelectItem value="Company Van (Ford Transit)">Company Van (Ford Transit)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-date">Booking Date *</Label>
+              <Input 
+                id="edit-date" 
+                type="date" 
+                value={editForm.date || ""} 
+                onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} 
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-start">Start Time *</Label>
+                <Input 
+                  id="edit-start" 
+                  type="time" 
+                  value={editForm.startTime || ""} 
+                  onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })} 
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-end">End Time *</Label>
+                <Input 
+                  id="edit-end" 
+                  type="time" 
+                  value={editForm.endTime || ""} 
+                  onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })} 
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-department">Department *</Label>
+              <Select value={editForm.department} onValueChange={(v) => setEditForm({ ...editForm, department: v })}>
+                <SelectTrigger id="edit-department">
+                  <SelectValue placeholder="Select Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Engineering">Engineering</SelectItem>
+                  <SelectItem value="Marketing">Marketing</SelectItem>
+                  <SelectItem value="Logistics">Logistics</SelectItem>
+                  <SelectItem value="HR">HR</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

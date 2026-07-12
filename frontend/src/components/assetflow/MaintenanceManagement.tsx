@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Wrench,
   Clock,
@@ -12,6 +12,7 @@ import {
   ArrowUpDown,
   MoreHorizontal,
   Paperclip,
+  UserCheck,
 } from "lucide-react";
 import { StatusPill } from "./StatusPill";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -39,14 +40,8 @@ type MaintenanceRequest = {
   description: string;
 };
 
-const STATS = [
-  { label: "Total Requests", value: "24", delta: "12%", trend: "up", icon: Wrench, sub: "this month" },
-  { label: "Pending Approval", value: "5", delta: "2", trend: "up", icon: Clock, sub: "needs attention" },
-  { label: "In Progress", value: "8", delta: "1", trend: "down", icon: AlertTriangle, sub: "being repaired" },
-  { label: "Resolved Today", value: "3", delta: "3", trend: "up", icon: CheckCircle2, sub: "completed" },
-];
 
-const INITIAL_REQUESTS: MaintenanceRequest[] = [
+export const INITIAL_REQUESTS: MaintenanceRequest[] = [
   {
     id: "MR-1001",
     assetTag: "AF-0112",
@@ -99,6 +94,22 @@ export function MaintenanceManagement() {
   const [newDesc, setNewDesc] = useState("");
   const [newPriority, setNewPriority] = useState<Priority>("medium");
   const [formError, setFormError] = useState("");
+
+  const totalRequests = requests.length;
+  const pendingCount = requests.filter(r => r.status === "pending").length;
+  const inProgressCount = requests.filter(r => r.status === "in_progress" || r.status === "technician_assigned").length;
+  const resolvedCount = requests.filter(r => r.status === "resolved").length;
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("maintenance-update", { detail: pendingCount }));
+  }, [pendingCount]);
+
+  const STATS = [
+    { label: "Total Requests", value: totalRequests.toString(), delta: "this month", trend: "up", icon: Wrench, sub: "all requests" },
+    { label: "Pending Assign", value: pendingCount.toString(), delta: "needs action", trend: "down", icon: Clock, sub: "awaiting dispatch" },
+    { label: "In Progress", value: inProgressCount.toString(), delta: "active", trend: "up", icon: UserCheck, sub: "currently open" },
+    { label: "Resolved", value: resolvedCount.toString(), delta: "this week", trend: "up", icon: CheckCircle2, sub: "completed" },
+  ];
 
   const handleRaiseRequest = () => {
     setFormError("");

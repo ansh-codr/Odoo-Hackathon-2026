@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 
 import type { Asset } from "./types";
@@ -23,6 +23,10 @@ export function Assets() {
   const [transferOpen, setTransferOpen] = useState(false);
 
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("assets-update", { detail: assets.length }));
+  }, [assets.length]);
 
   function handleSave(asset: Asset) {
     setAssets((prev) => [...prev, asset]);

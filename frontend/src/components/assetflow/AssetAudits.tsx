@@ -49,12 +49,6 @@ type AuditCycle = {
   assets: AuditAsset[];
 };
 
-const STATS = [
-  { label: "Active Audit Cycles", value: "3", delta: "1", trend: "up", icon: ClipboardCheck, sub: "in progress" },
-  { label: "Assets Verified", value: "842", delta: "12%", trend: "up", icon: CheckCircle2, sub: "this month" },
-  { label: "Missing Assets", value: "12", delta: "2", trend: "down", icon: XCircle, sub: "unresolved" },
-  { label: "Damaged Assets", value: "8", delta: "0", trend: "up", icon: AlertTriangle, sub: "needs repair" },
-];
 
 const MOCK_ASSETS: AuditAsset[] = [
   { id: "A-1", tag: "AF-0112", name: "MacBook Pro M2", department: "Engineering", status: "pending" },
@@ -123,6 +117,18 @@ export function AssetAudits() {
     notes: ""
   });
   const [formError, setFormError] = useState("");
+
+  const activeAudits = audits.filter(a => a.status === "active").length;
+  const verifiedAssets = audits.reduce((acc, a) => acc + a.assets.filter(ast => ast.status === "verified").length, 0);
+  const missingAssets = audits.reduce((acc, a) => acc + a.assets.filter(ast => ast.status === "missing").length, 0);
+  const damagedAssets = audits.reduce((acc, a) => acc + a.assets.filter(ast => ast.status === "damaged").length, 0);
+
+  const STATS = [
+    { label: "Active Audit Cycles", value: activeAudits.toString(), delta: "in progress", trend: "up", icon: ClipboardCheck, sub: "current" },
+    { label: "Assets Verified", value: verifiedAssets.toString(), delta: "this month", trend: "up", icon: CheckCircle2, sub: "completed" },
+    { label: "Missing Assets", value: missingAssets.toString(), delta: "unresolved", trend: "down", icon: XCircle, sub: "unresolved" },
+    { label: "Damaged Assets", value: damagedAssets.toString(), delta: "needs repair", trend: "up", icon: AlertTriangle, sub: "needs repair" },
+  ];
 
   const handleCreateAudit = () => {
     setFormError("");

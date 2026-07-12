@@ -13,14 +13,7 @@ import {
 } from "lucide-react";
 import { StatusPill, type AssetStatus } from "./StatusPill";
 
-const STATS = [
-  { label: "Total Assets", value: "0", delta: "0", trend: "up", icon: Package, sub: "this month" },
-  { label: "Currently Allocated", value: "0", delta: "0%", trend: "up", icon: ArrowLeftRight, sub: "of fleet" },
-  { label: "Under Maintenance", value: "0", delta: "0", trend: "down", icon: Wrench, sub: "vs last week" },
-  { label: "Overdue Returns", value: "0", delta: "0", trend: "up", icon: AlertTriangle, sub: "needs action" },
-];
-
-const ASSETS: {
+const INITIAL_ASSETS: {
   tag: string;
   name: string;
   category: string;
@@ -28,13 +21,37 @@ const ASSETS: {
   location: string;
   status: AssetStatus;
   updated: string;
-}[] = [];
+}[] = [
+  { tag: "AF-0112", name: "MacBook Pro M2", category: "Electronics", assignee: "Sarah Jenkins", location: "HQ", status: "allocated", updated: "2h ago" },
+  { tag: "AF-0240", name: "Office Chair v2", category: "Furniture", assignee: "David Chen", location: "HQ", status: "available", updated: "1d ago" },
+  { tag: "AF-0050", name: "Projector X1", category: "Equipment", assignee: "—", location: "Storage", status: "maintenance", updated: "3d ago" },
+  { tag: "AF-0899", name: "Company iPad Pro", category: "Electronics", assignee: "Emily Davis", location: "HQ", status: "allocated", updated: "5d ago" },
+];
 
-const ACTIVITY: { who: string; action: string; target: string; time: string; tone: AssetStatus }[] = [];
+const ACTIVITY: { who: string; action: string; target: string; time: string; tone: AssetStatus }[] = [
+  { who: "Sarah Jenkins", action: "checked out", target: "AF-0112", time: "2h", tone: "allocated" },
+  { who: "Mike Ross", action: "reported issue for", target: "AF-0050", time: "3d", tone: "maintenance" },
+];
 
-const BOOKINGS: { room: string; when: string; who: string; status: AssetStatus }[] = [];
+const INITIAL_BOOKINGS: { room: string; when: string; who: string; status: AssetStatus }[] = [
+  { room: "Meeting Room B2", when: "Today, 14:00", who: "Sarah Jenkins", status: "reserved" },
+  { room: "Projector X1", when: "Tomorrow, 09:00", who: "David Chen", status: "reserved" },
+];
 
 export function Dashboard() {
+  const assets = INITIAL_ASSETS;
+  const bookings = INITIAL_BOOKINGS;
+
+  const totalAssets = assets.length;
+  const allocatedAssets = assets.filter(a => a.status === "allocated").length;
+  const maintenanceAssets = assets.filter(a => a.status === "maintenance").length;
+
+  const STATS = [
+    { label: "Total Assets", value: totalAssets.toString(), delta: "this month", trend: "up", icon: Package, sub: "fleet size" },
+    { label: "Currently Allocated", value: allocatedAssets.toString(), delta: "active", trend: "up", icon: ArrowLeftRight, sub: "in use" },
+    { label: "Under Maintenance", value: maintenanceAssets.toString(), delta: "needs repair", trend: "down", icon: Wrench, sub: "being fixed" },
+    { label: "Upcoming Bookings", value: bookings.length.toString(), delta: "scheduled", trend: "up", icon: AlertTriangle, sub: "next 7 days" },
+  ];
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-6">
       {/* Page header */}
@@ -130,7 +147,7 @@ export function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {ASSETS.map((a) => (
+                {assets.map((a) => (
                   <tr
                     key={a.tag}
                     className="border-b border-border/60 last:border-0 hover:bg-muted/40"
@@ -218,7 +235,7 @@ export function Dashboard() {
               <button className="text-xs font-medium text-primary hover:underline">View all</button>
             </div>
             <ul className="mt-3 divide-y divide-border">
-              {BOOKINGS.map((b) => (
+              {bookings.map((b) => (
                 <li key={b.room} className="flex items-start justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium text-foreground">{b.room}</div>

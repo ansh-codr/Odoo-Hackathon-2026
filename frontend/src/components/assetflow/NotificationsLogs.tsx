@@ -45,7 +45,7 @@ type ActivityLog = {
   ipAddress: string;
 };
 
-const MOCK_NOTIFICATIONS: AppNotification[] = [
+export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: "N-01",
     type: "audit",

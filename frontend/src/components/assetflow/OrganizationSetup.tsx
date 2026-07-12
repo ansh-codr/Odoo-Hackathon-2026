@@ -27,12 +27,6 @@ type Department = { id: string; name: string; head: string; parent: string; empl
 type AssetCategory = { id: string; name: string; description: string; assetsCount: number; warrantyPeriod: string; status: "active" | "inactive" };
 type Employee = { id: string; name: string; email: string; department: string; role: string; status: "active" | "inactive" };
 
-const STATS = [
-  { label: "Total Departments", value: "8", icon: Building2 },
-  { label: "Asset Categories", value: "15", icon: Tags },
-  { label: "Employees", value: "245", icon: Users },
-  { label: "Active Managers", value: "12", icon: UserCheck },
-];
 
 const MOCK_DEPARTMENTS: Department[] = [
   { id: "D1", name: "Engineering", head: "Sarah Jenkins", parent: "N/A", employees: 85, status: "active" },
@@ -64,6 +58,11 @@ export function OrganizationSetup({ role }: { role: Role }) {
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [promoteModalOpen, setPromoteModalOpen] = useState<{open: boolean, empId: string | null}>({open: false, empId: null});
   
+  // Edit modals state
+  const [editDeptModalOpen, setEditDeptModalOpen] = useState<{open: boolean, id: string | null}>({open: false, id: null});
+  const [editCatModalOpen, setEditCatModalOpen] = useState<{open: boolean, id: string | null}>({open: false, id: null});
+  const [editEmpModalOpen, setEditEmpModalOpen] = useState<{open: boolean, id: string | null}>({open: false, id: null});
+
   // Drawer state
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
@@ -71,6 +70,16 @@ export function OrganizationSetup({ role }: { role: Role }) {
   const [deptForm, setDeptForm] = useState({ name: "", head: "", parent: "", desc: "", status: "active" });
   const [catForm, setCatForm] = useState({ name: "", desc: "", warranty: "", status: "active" });
   const [promoteForm, setPromoteForm] = useState({ role: "" });
+  const [editEmpForm, setEditEmpForm] = useState({ name: "", email: "", department: "", role: "", status: "active" });
+
+  const activeManagersCount = employees.filter(e => e.role === "Asset Manager" || e.role === "Department Head" || e.role === "Admin").length;
+
+  const STATS = [
+    { label: "Total Departments", value: departments.length.toString(), icon: Building2 },
+    { label: "Asset Categories", value: categories.length.toString(), icon: Tags },
+    { label: "Employees", value: employees.length.toString(), icon: Users },
+    { label: "Active Managers", value: activeManagersCount.toString(), icon: UserCheck },
+  ];
 
   if (role !== "admin") {
     return (
@@ -147,8 +156,46 @@ export function OrganizationSetup({ role }: { role: Role }) {
     toast.success("Employee status updated");
   };
 
-  const handleEditMock = () => {
-    toast.info("Edit functionality is available in full integration");
+  const handleEditDept = () => {
+    if (!deptForm.name) return toast.error("Department Name is required");
+    if (editDeptModalOpen.id) {
+      setDepartments(prev => prev.map(d => d.id === editDeptModalOpen.id ? { ...d, name: deptForm.name, head: deptForm.head, parent: deptForm.parent, status: deptForm.status as "active" | "inactive" } : d));
+      toast.success("Department updated");
+    }
+    setEditDeptModalOpen({open: false, id: null});
+  };
+
+  const handleEditCat = () => {
+    if (!catForm.name) return toast.error("Category Name is required");
+    if (editCatModalOpen.id) {
+      setCategories(prev => prev.map(c => c.id === editCatModalOpen.id ? { ...c, name: catForm.name, description: catForm.desc, warrantyPeriod: catForm.warranty, status: catForm.status as "active" | "inactive" } : c));
+      toast.success("Category updated");
+    }
+    setEditCatModalOpen({open: false, id: null});
+  };
+
+  const handleEditEmp = () => {
+    if (!editEmpForm.name) return toast.error("Name is required");
+    if (editEmpModalOpen.id) {
+      setEmployees(prev => prev.map(e => e.id === editEmpModalOpen.id ? { ...e, name: editEmpForm.name, email: editEmpForm.email, department: editEmpForm.department, role: editEmpForm.role, status: editEmpForm.status as "active" | "inactive" } : e));
+      toast.success("Employee updated");
+    }
+    setEditEmpModalOpen({open: false, id: null});
+  };
+
+  const openEditDept = (dept: Department) => {
+    setDeptForm({ name: dept.name, head: dept.head, parent: dept.parent, desc: "", status: dept.status });
+    setEditDeptModalOpen({ open: true, id: dept.id });
+  };
+
+  const openEditCat = (cat: AssetCategory) => {
+    setCatForm({ name: cat.name, desc: cat.description, warranty: cat.warrantyPeriod, status: cat.status });
+    setEditCatModalOpen({ open: true, id: cat.id });
+  };
+
+  const openEditEmp = (emp: Employee) => {
+    setEditEmpForm({ name: emp.name, email: emp.email, department: emp.department, role: emp.role, status: emp.status });
+    setEditEmpModalOpen({ open: true, id: emp.id });
   };
 
   return (
@@ -260,7 +307,7 @@ export function OrganizationSetup({ role }: { role: Role }) {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-7 w-7 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={handleEditMock}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openEditDept(d)}>Edit</DropdownMenuItem>
                             <DropdownMenuItem className={d.status === "active" ? "text-destructive" : ""} onClick={() => toggleDeptStatus(d.id)}>
                               {d.status === "active" ? "Deactivate" : "Activate"}
                             </DropdownMenuItem>
@@ -299,7 +346,7 @@ export function OrganizationSetup({ role }: { role: Role }) {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-7 w-7 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={handleEditMock}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openEditCat(c)}>Edit</DropdownMenuItem>
                             <DropdownMenuItem className={c.status === "active" ? "text-destructive" : ""} onClick={() => toggleCatStatus(c.id)}>
                               {c.status === "active" ? "Deactivate" : "Activate"}
                             </DropdownMenuItem>
@@ -340,7 +387,7 @@ export function OrganizationSetup({ role }: { role: Role }) {
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-7 w-7 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => setPromoteModalOpen({open: true, empId: e.id})}>Promote</DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleEditMock}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openEditEmp(e)}>Edit</DropdownMenuItem>
                             <DropdownMenuItem className={e.status === "active" ? "text-destructive" : ""} onClick={() => toggleEmpStatus(e.id)}>
                               {e.status === "active" ? "Deactivate" : "Activate"}
                             </DropdownMenuItem>
@@ -413,6 +460,63 @@ export function OrganizationSetup({ role }: { role: Role }) {
             </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setPromoteModalOpen({open: false, empId: null})}>Cancel</Button><Button onClick={handlePromote}>Confirm Promotion</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dept Modal */}
+      <Dialog open={editDeptModalOpen.open} onOpenChange={(open) => setEditDeptModalOpen({open, id: open ? editDeptModalOpen.id : null})}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Department</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2"><Label>Department Name *</Label><Input value={deptForm.name} onChange={e => setDeptForm({...deptForm, name: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>Department Head</Label><Input value={deptForm.head} onChange={e => setDeptForm({...deptForm, head: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>Parent Department</Label><Input value={deptForm.parent} onChange={e => setDeptForm({...deptForm, parent: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>Status</Label>
+              <Select value={deptForm.status} onValueChange={v => setDeptForm({...deptForm, status: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setEditDeptModalOpen({open: false, id: null})}>Cancel</Button><Button onClick={handleEditDept}>Save Changes</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Cat Modal */}
+      <Dialog open={editCatModalOpen.open} onOpenChange={(open) => setEditCatModalOpen({open, id: open ? editCatModalOpen.id : null})}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Asset Category</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2"><Label>Category Name *</Label><Input value={catForm.name} onChange={e => setCatForm({...catForm, name: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>Description</Label><Textarea value={catForm.desc} onChange={e => setCatForm({...catForm, desc: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>Warranty Period</Label><Input value={catForm.warranty} onChange={e => setCatForm({...catForm, warranty: e.target.value})} placeholder="e.g. 2 Years" /></div>
+            <div className="grid gap-2"><Label>Status</Label>
+              <Select value={catForm.status} onValueChange={v => setCatForm({...catForm, status: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setEditCatModalOpen({open: false, id: null})}>Cancel</Button><Button onClick={handleEditCat}>Save Changes</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Emp Modal */}
+      <Dialog open={editEmpModalOpen.open} onOpenChange={(open) => setEditEmpModalOpen({open, id: open ? editEmpModalOpen.id : null})}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Employee</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2"><Label>Name *</Label><Input value={editEmpForm.name} onChange={e => setEditEmpForm({...editEmpForm, name: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>Email</Label><Input type="email" value={editEmpForm.email} onChange={e => setEditEmpForm({...editEmpForm, email: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>Department</Label><Input value={editEmpForm.department} onChange={e => setEditEmpForm({...editEmpForm, department: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>Status</Label>
+              <Select value={editEmpForm.status} onValueChange={v => setEditEmpForm({...editEmpForm, status: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setEditEmpModalOpen({open: false, id: null})}>Cancel</Button><Button onClick={handleEditEmp}>Save Changes</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

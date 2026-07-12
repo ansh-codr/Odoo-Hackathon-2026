@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -47,14 +47,8 @@ type ApprovalRequest = {
   expectedReturnDate?: string;
 };
 
-const STATS = [
-  { label: "Pending Approvals", value: "14", delta: "4", trend: "up", icon: ClipboardCheck, sub: "needs attention" },
-  { label: "Approved Today", value: "28", delta: "12%", trend: "up", icon: CheckCircle2, sub: "processed" },
-  { label: "Rejected Today", value: "3", delta: "1", trend: "down", icon: XCircle, sub: "declined requests" },
-  { label: "Avg. Approval Time", value: "4.2h", delta: "0.5h", trend: "up", icon: Clock, sub: "last 7 days" },
-];
 
-const INITIAL_REQUESTS: ApprovalRequest[] = [
+export const INITIAL_APPROVAL_REQUESTS: ApprovalRequest[] = [
   {
     id: "REQ-2001",
     type: "maintenance",
@@ -108,16 +102,30 @@ const INITIAL_REQUESTS: ApprovalRequest[] = [
 ];
 
 export function ApprovalCenter() {
-  const [requests, setRequests] = useState<ApprovalRequest[]>(INITIAL_REQUESTS);
+  const [requests, setRequests] = useState<ApprovalRequest[]>(INITIAL_APPROVAL_REQUESTS);
   const [activeTab, setActiveTab] = useState<RequestType | "all">("all");
   
   // Drawer State
   const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
 
-  // Reject Modal State
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
+
+  const pendingCount = requests.filter(r => r.status === "pending").length;
+  const approvedCount = requests.filter(r => r.status === "approved").length;
+  const rejectedCount = requests.filter(r => r.status === "rejected").length;
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("approvals-update", { detail: pendingCount }));
+  }, [pendingCount]);
+
+  const STATS = [
+    { label: "Pending Approvals", value: pendingCount.toString(), delta: "needs attention", trend: "up", icon: ClipboardCheck, sub: "active requests" },
+    { label: "Approved Today", value: approvedCount.toString(), delta: "processed", trend: "up", icon: CheckCircle2, sub: "completed" },
+    { label: "Rejected Today", value: rejectedCount.toString(), delta: "declined", trend: "down", icon: XCircle, sub: "declined requests" },
+    { label: "Avg. Approval Time", value: "4.2h", delta: "0.5h", trend: "up", icon: Clock, sub: "last 7 days" },
+  ];
 
   const filteredRequests = requests.filter(r => activeTab === "all" || r.type === activeTab);
 

@@ -13,6 +13,11 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { initialAssets } from "./data";
+import { INITIAL_BOOKINGS } from "./ResourceBookings";
+import { INITIAL_REQUESTS } from "./MaintenanceManagement";
+import { INITIAL_APPROVAL_REQUESTS } from "./ApprovalCenter";
+import { MOCK_NOTIFICATIONS } from "./NotificationsLogs";
 
 export type Role = "admin" | "asset_manager" | "department_head" | "employee";
 
@@ -48,15 +53,36 @@ export function Sidebar({
   onNavigate: (key: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(3); // Default from mock
+  const [unreadNotifications, setUnreadNotifications] = useState(MOCK_NOTIFICATIONS.filter(n => !n.isRead).length);
+  const [assetsCount, setAssetsCount] = useState<number | null>(initialAssets.length);
+  const [bookingsCount, setBookingsCount] = useState<number | null>(INITIAL_BOOKINGS.filter(b => b.status !== "cancelled").length);
+  const [maintenanceCount, setMaintenanceCount] = useState<number | null>(INITIAL_REQUESTS.filter(r => r.status === "pending").length);
+  const [approvalsCount, setApprovalsCount] = useState<number | null>(INITIAL_APPROVAL_REQUESTS.filter(r => r.status === "pending").length);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<number>;
       setUnreadNotifications(customEvent.detail);
     };
+    
+    const handleAssets = (e: Event) => setAssetsCount((e as CustomEvent<number>).detail);
+    const handleBookings = (e: Event) => setBookingsCount((e as CustomEvent<number>).detail);
+    const handleMaintenance = (e: Event) => setMaintenanceCount((e as CustomEvent<number>).detail);
+    const handleApprovals = (e: Event) => setApprovalsCount((e as CustomEvent<number>).detail);
+
     window.addEventListener("notifications-update", handleUpdate);
-    return () => window.removeEventListener("notifications-update", handleUpdate);
+    window.addEventListener("assets-update", handleAssets);
+    window.addEventListener("bookings-update", handleBookings);
+    window.addEventListener("maintenance-update", handleMaintenance);
+    window.addEventListener("approvals-update", handleApprovals);
+    
+    return () => {
+      window.removeEventListener("notifications-update", handleUpdate);
+      window.removeEventListener("assets-update", handleAssets);
+      window.removeEventListener("bookings-update", handleBookings);
+      window.removeEventListener("maintenance-update", handleMaintenance);
+      window.removeEventListener("approvals-update", handleApprovals);
+    };
   }, []);
 
   return (
@@ -99,6 +125,14 @@ export function Sidebar({
             let displayBadge = item.badge;
             if (item.key === "notifications") {
               displayBadge = unreadNotifications > 0 ? unreadNotifications.toString() : null;
+            } else if (item.key === "assets") {
+              displayBadge = assetsCount !== null ? assetsCount.toLocaleString() : null;
+            } else if (item.key === "bookings") {
+              displayBadge = bookingsCount !== null ? bookingsCount.toLocaleString() : null;
+            } else if (item.key === "maintenance") {
+              displayBadge = maintenanceCount !== null ? maintenanceCount.toLocaleString() : null;
+            } else if (item.key === "approvals") {
+              displayBadge = approvalsCount !== null ? approvalsCount.toLocaleString() : null;
             }
 
             return (
