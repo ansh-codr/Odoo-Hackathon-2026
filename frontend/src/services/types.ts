@@ -21,6 +21,7 @@ export type MaintenanceStatus =
   | "Pending_Approval"
   | "Approved"
   | "Rejected"
+  | "Technician_Assigned"
   | "In_Progress"
   | "Resolved";
 
@@ -134,6 +135,8 @@ export interface MaintenanceRequest {
   createdAt: number;
   actionedById: string | null;
   actionedAt: number | null;
+  technician?: string;
+  resolutionNotes?: string;
 }
 
 export interface AuditCycle {
