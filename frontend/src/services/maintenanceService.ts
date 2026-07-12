@@ -313,9 +313,9 @@ export async function resolveMaintenanceRequest(
     
     const r = reqSnap.data() as MaintenanceRequest;
     
-    // Rule 6: Resolved requests cannot be edited
-    if (r.status === "Resolved") {
-      throw new Error("This maintenance request is already resolved and cannot be edited.");
+    // Rule 6: Resolved requests cannot be edited & must be In Progress to be resolved
+    if (r.status !== "In_Progress") {
+      throw new Error("Maintenance request must be In Progress to be resolved.");
     }
 
     requesterId = r.userId;

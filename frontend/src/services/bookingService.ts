@@ -23,6 +23,13 @@ export async function createBooking(data: Omit<Booking, "id" | "bookedBy" | "sta
   const currentUser = auth.currentUser;
   if (!currentUser) throw new Error("Authentication required");
 
+  const bookingDate = new Date(data.date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (bookingDate < today) {
+    throw new Error("Cannot create a booking in the past.");
+  }
+
   const bookingId = "BKG-" + Date.now().toString().slice(-6);
   const newBooking: Booking = {
     ...data,
