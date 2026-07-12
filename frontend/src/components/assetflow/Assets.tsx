@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { RegisterAssetDialog } from "./RegisterAssetDialog";
+import { AllocateAssetDialog } from "./AllocateAssetDialog";
 import { AssetTable } from "./AssetTable";
 import { initialAssets } from "./data";
 import type { Asset } from "./types";
@@ -11,11 +12,43 @@ import { Input } from "@/components/ui/input";
 
 export function Assets() {
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
+
   const [search, setSearch] = useState("");
+
   const [open, setOpen] = useState(false);
+
+  const [allocateOpen, setAllocateOpen] = useState(false);
+
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   function handleSave(asset: Asset) {
     setAssets((prev) => [...prev, asset]);
+  }
+
+  function handleAllocate(asset: Asset) {
+    setSelectedAsset(asset);
+    setAllocateOpen(true);
+  }
+
+  function completeAllocation(data: {
+    employee: string;
+    department: string;
+    allocationDate: string;
+    returnDate: string;
+  }) {
+    if (!selectedAsset) return;
+
+    setAssets((prev) =>
+      prev.map((asset) =>
+        asset.id === selectedAsset.id
+          ? {
+              ...asset,
+              assignedTo: data.employee,
+              status: "Allocated",
+            }
+          : asset
+      )
+    );
   }
 
   const filteredAssets = useMemo(() => {
@@ -28,6 +61,7 @@ export function Assets() {
         asset.category,
         asset.location,
         asset.status,
+        asset.assignedTo,
       ]
         .join(" ")
         .toLowerCase()
@@ -62,12 +96,21 @@ export function Assets() {
         />
       </div>
 
-      <AssetTable assets={filteredAssets} />
+      <AssetTable
+        assets={filteredAssets}
+        onAllocate={handleAllocate}
+      />
 
       <RegisterAssetDialog
         open={open}
         onOpenChange={setOpen}
         onSave={handleSave}
+      />
+
+      <AllocateAssetDialog
+        open={allocateOpen}
+        onOpenChange={setAllocateOpen}
+        onAllocate={completeAllocation}
       />
     </div>
   );
