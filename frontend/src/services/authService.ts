@@ -3,7 +3,9 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   updateProfile, 
-  User
+  User,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
@@ -36,6 +38,34 @@ export async function loginUser(email: string, password: string): Promise<User> 
   const userCred = await signInWithEmailAndPassword(auth, email, password);
   await logActivity("User Login", `Logged in user ${email}`);
   return userCred.user;
+}
+
+export async function loginWithGoogle(): Promise<User> {
+  const provider = new GoogleAuthProvider();
+  const userCred = await signInWithPopup(auth, provider);
+  const user = userCred.user;
+  
+  // Check if user doc exists
+  const userDocRef = doc(db, "users", user.uid);
+  const docSnap = await getDoc(userDocRef);
+  
+  if (!docSnap.exists()) {
+    // Create new user document
+    const userDoc: UserDocument = {
+      uid: user.uid,
+      email: user.email || "",
+      displayName: user.displayName || "Google User",
+      role: (user.email || "").toLowerCase() === "admin@assetflow.com" ? "admin" : "employee",
+      departmentId: null,
+      createdAt: Date.now()
+    };
+    await setDoc(userDocRef, userDoc);
+    await logActivity("User Registered", `Registered new Google user ${user.email}`);
+  } else {
+    await logActivity("User Login", `Logged in Google user ${user.email}`);
+  }
+  
+  return user;
 }
 
 export async function logoutUser(): Promise<void> {

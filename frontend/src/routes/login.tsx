@@ -1,13 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { loginUser, registerUser, loginWithGoogle } from "../services/authService";
 import { ArrowRight, Lock, Mail, AlertCircle, UserPlus, Sun, Moon } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
@@ -54,10 +48,9 @@ function Login() {
     setError(null);
     try {
       if (isSignUp) {
-        const userCred = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCred.user, { displayName: name });
+        await registerUser(email, password, name);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        await loginUser(email, password);
       }
       navigate({ to: "/app" });
     } catch (err: any) {
@@ -75,8 +68,7 @@ function Login() {
     setLoading(true);
     setError(null);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await loginWithGoogle();
       navigate({ to: "/app" });
     } catch {
       setError("Failed to sign in with Google. Please try again.");
