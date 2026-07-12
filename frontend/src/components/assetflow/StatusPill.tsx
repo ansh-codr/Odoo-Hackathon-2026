@@ -22,7 +22,13 @@ export type AssetStatus =
   | "low"
   | "medium"
   | "high"
-  | "critical";
+  | "critical"
+  | "scheduled"
+  | "active"
+  | "closed"
+  | "verified"
+  | "missing"
+  | "damaged";
 
 const STATUS_META: Record<AssetStatus, { label: string; cls: string; dot: string }> = {
   available: {
@@ -134,6 +140,36 @@ const STATUS_META: Record<AssetStatus, { label: string; cls: string; dot: string
     label: "Critical",
     cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
     dot: "bg-red-500",
+  },
+  scheduled: {
+    label: "Scheduled",
+    cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    dot: "bg-blue-500",
+  },
+  active: {
+    label: "Active",
+    cls: "bg-status-available-bg text-status-available",
+    dot: "bg-status-available",
+  },
+  closed: {
+    label: "Closed",
+    cls: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+    dot: "bg-gray-500",
+  },
+  verified: {
+    label: "Verified",
+    cls: "bg-status-available-bg text-status-available",
+    dot: "bg-status-available",
+  },
+  missing: {
+    label: "Missing",
+    cls: "bg-status-lost-bg text-status-lost",
+    dot: "bg-status-lost",
+  },
+  damaged: {
+    label: "Damaged",
+    cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    dot: "bg-orange-500",
   },
 };
 
