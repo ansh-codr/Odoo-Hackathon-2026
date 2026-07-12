@@ -177,10 +177,30 @@ export function StatusPill({
   status,
   className,
 }: {
-  status: AssetStatus;
+  status: AssetStatus | string;
   className?: string;
 }) {
-  const meta = STATUS_META[status];
+  // Normalize status string just in case it comes directly from DB with different casing or formatting
+  const normalizedStatus = (status || "").toString().toLowerCase().replace(/_/g, " ") as AssetStatus;
+  
+  // Try to find an exact match, or fallback to a default
+  let meta = STATUS_META[status as AssetStatus] || STATUS_META[normalizedStatus];
+
+  // If still not found, try to do some fuzzy matching or provide a generic fallback
+  if (!meta) {
+    if (normalizedStatus.includes("pending")) meta = STATUS_META.pending;
+    else if (normalizedStatus.includes("approv")) meta = STATUS_META.approved;
+    else if (normalizedStatus.includes("reject")) meta = STATUS_META.rejected;
+    else if (normalizedStatus.includes("maintenance")) meta = STATUS_META.maintenance;
+    else {
+      meta = {
+        label: status ? status.toString().replace(/_/g, " ") : "Unknown",
+        cls: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+        dot: "bg-gray-500",
+      };
+    }
+  }
+
   return (
     <span
       className={cn(
