@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { auth } from "../lib/firebase";
-import { loginUser, registerUser, loginWithGoogle } from "../services/authService";
+import { loginUser, registerUser, loginWithGoogle, resetPassword } from "../services/authService";
 import { ArrowRight, Lock, Mail, AlertCircle, UserPlus, Sun, Moon } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
@@ -22,11 +22,20 @@ function Login() {
   });
 
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const handleToggleMode = (signUp: boolean, forgot: boolean) => {
+    setIsSignUp(signUp);
+    setIsForgotPassword(forgot);
+    setError(null);
+    setSuccess(null);
+  };
 
   const toggleDark = () => {
     setDark((prev) => {
@@ -40,12 +49,32 @@ function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isForgotPassword) {
+      if (!email) {
+        setError("Please fill in all fields.");
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+      try {
+        await resetPassword(email);
+        setSuccess("Password reset email sent! Check your inbox.");
+      } catch (err: any) {
+        setError(err.message || "Failed to send reset email. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!email || !password || (isSignUp && !name)) {
       setError("Please fill in all fields.");
       return;
     }
     setLoading(true);
     setError(null);
+    setSuccess(null);
     try {
       if (isSignUp) {
         await registerUser(email, password, name);
@@ -97,10 +126,14 @@ function Login() {
             <img src="/Fevicon.png" alt="Assera" style={{ width: 32, height: 32, objectFit: "contain" }} />
           </div>
           <h1 style={{ fontFamily: "Inter Tight, Inter, sans-serif", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 12px" }}>
-            {isSignUp ? "Create Account" : "Welcome back"}
+            {isForgotPassword ? "Reset Password" : isSignUp ? "Create Account" : "Welcome back"}
           </h1>
           <p className="login-muted" style={{ fontSize: 15, margin: 0 }}>
-            {isSignUp ? "Sign up to start tracking your assets" : "Sign in to access your asset dashboard"}
+            {isForgotPassword 
+              ? "Enter your work email to receive a password reset link" 
+              : isSignUp 
+                ? "Sign up to start tracking your assets" 
+                : "Sign in to access your asset dashboard"}
           </p>
         </div>
 
@@ -114,69 +147,118 @@ function Login() {
               </div>
             )}
 
-            {isSignUp && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <label className="login-label">Full Name</label>
-                <div style={{ position: "relative" }}>
-                  <UserPlus size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                  <input
-                    className="login-input"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Jane Doe"
-                    autoComplete="name"
-                  />
-                </div>
+            {success && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e", fontSize: 14 }}>
+                <AlertCircle size={16} />
+                {success}
               </div>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label className="login-label">Work Email</label>
-              <div style={{ position: "relative" }}>
-                <Mail size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                <input
-                  className="login-input"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  autoComplete="email"
-                />
-              </div>
-            </div>
+            {isForgotPassword ? (
+              <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label className="login-label">Work Email</label>
+                  <div style={{ position: "relative" }}>
+                    <Mail size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                    <input
+                      className="login-input"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      autoComplete="email"
+                    />
+                  </div>
+                </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label className="login-label">Password</label>
-                {!isSignUp && (
-                  <a href="#" style={{ fontSize: 13, color: "#a855f7", textDecoration: "none", fontWeight: 500 }}>
-                    Forgot password?
-                  </a>
+                <button type="submit" disabled={loading} className="login-submit-btn" style={{ width: "100%" }}>
+                  {loading
+                    ? "Sending reset link..."
+                    : <>Send Reset Link <ArrowRight size={16} /></>
+                  }
+                </button>
+
+                <div style={{ textAlign: "center", marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleMode(false, false)}
+                    style={{ background: "none", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, color: "inherit" }}
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {isSignUp && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <label className="login-label">Full Name</label>
+                    <div style={{ position: "relative" }}>
+                      <UserPlus size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                      <input
+                        className="login-input"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Jane Doe"
+                        autoComplete="name"
+                      />
+                    </div>
+                  </div>
                 )}
-              </div>
-              <div style={{ position: "relative" }}>
-                <Lock size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                <input
-                  className="login-input"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete={isSignUp ? "new-password" : "current-password"}
-                />
-              </div>
-            </div>
 
-            <button type="submit" disabled={loading} className="login-submit-btn" style={{ width: "100%" }}>
-              {loading
-                ? isSignUp ? "Creating account..." : "Signing in..."
-                : <>{isSignUp ? "Create Account" : "Sign In"} <ArrowRight size={16} /></>
-              }
-            </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label className="login-label">Work Email</label>
+                  <div style={{ position: "relative" }}>
+                    <Mail size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                    <input
+                      className="login-input"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      autoComplete="email"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <label className="login-label">Password</label>
+                    {!isSignUp && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleMode(false, true)}
+                        style={{ background: "none", border: "none", fontSize: 13, color: "#a855f7", textDecoration: "none", fontWeight: 500, cursor: "pointer", padding: 0 }}
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <Lock size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                    <input
+                      className="login-input"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete={isSignUp ? "new-password" : "current-password"}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" disabled={loading} className="login-submit-btn" style={{ width: "100%" }}>
+                  {loading
+                    ? isSignUp ? "Creating account..." : "Signing in..."
+                    : <>{isSignUp ? "Create Account" : "Sign In"} <ArrowRight size={16} /></>
+                  }
+                </button>
+              </>
+            )}
           </form>
 
-          {!isSignUp && (
+          {!isSignUp && !isForgotPassword && (
             <>
               <div className="login-divider">
                 <div className="login-divider-line" />
@@ -202,39 +284,41 @@ function Login() {
           )}
 
           {/* Sign up / New here section */}
-          <div style={{ marginTop: isSignUp ? 24 : 0 }}>
-            {isSignUp ? (
-              <div style={{ textAlign: "center" }}>
-                <span className="login-muted" style={{ fontSize: 14 }}>Already have an account? </span>
-                <button
-                  type="button"
-                  onClick={() => setIsSignUp(false)}
-                  style={{ background: "none", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, color: "inherit" }}
-                >
-                  Sign In
-                </button>
-              </div>
-            ) : (
-              <div>
-                <div className="login-divider">
-                  <div className="login-divider-line" />
+          {!isForgotPassword && (
+            <div style={{ marginTop: isSignUp ? 24 : 0 }}>
+              {isSignUp ? (
+                <div style={{ textAlign: "center" }}>
+                  <span className="login-muted" style={{ fontSize: 14 }}>Already have an account? </span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleMode(false, false)}
+                    style={{ background: "none", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, color: "inherit" }}
+                  >
+                    Sign In
+                  </button>
                 </div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 12px" }}>New here?</h3>
-                <div className="login-info-box">
-                  <p className="login-muted" style={{ fontSize: 14, lineHeight: 1.5, margin: 0 }}>
-                    Sign up creates an employee account.<br />Admin roles assigned later.
-                  </p>
+              ) : (
+                <div>
+                  <div className="login-divider">
+                    <div className="login-divider-line" />
+                  </div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 12px" }}>New here?</h3>
+                  <div className="login-info-box">
+                    <p className="login-muted" style={{ fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+                      Sign up creates an employee account.<br />Admin roles assigned later.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleMode(true, false)}
+                    className="login-secondary-btn"
+                  >
+                    Create Account
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsSignUp(true)}
-                  className="login-secondary-btn"
-                >
-                  Create Account
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 32, fontSize: 12 }}>
