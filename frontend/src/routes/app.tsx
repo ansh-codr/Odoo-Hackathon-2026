@@ -9,6 +9,8 @@ import { MaintenanceManagement } from "@/components/assetflow/MaintenanceManagem
 import { ApprovalCenter } from "@/components/assetflow/ApprovalCenter";
 import { AssetAudits } from "@/components/assetflow/AssetAudits";
 import { NotificationsLogs } from "@/components/assetflow/NotificationsLogs";
+import { ReportsAnalytics } from "@/components/assetflow/ReportsAnalytics";
+import { OrganizationSetup } from "@/components/assetflow/OrganizationSetup";
 import { Assets } from "@/components/assetflow/Assets";
 
 export const Route = createFileRoute("/app")({
@@ -31,6 +33,7 @@ function AppShell() {
         <Topbar
           role={role}
           onRoleChange={setRole}
+          onNavigate={setActive}
         />
 
         <main className="flex-1 overflow-y-auto">
@@ -48,6 +51,10 @@ function AppShell() {
             <AssetAudits />
           ) : active === "notifications" ? (
             <NotificationsLogs role={role} />
+          ) : active === "reports" ? (
+            <ReportsAnalytics />
+          ) : active === "org" ? (
+            <OrganizationSetup role={role} />
           ) : (
             <div className="grid h-full place-items-center text-sm text-muted-foreground">
               <div className="text-center">

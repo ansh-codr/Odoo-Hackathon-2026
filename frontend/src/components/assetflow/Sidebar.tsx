@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Package,
@@ -48,6 +48,16 @@ export function Sidebar({
   onNavigate: (key: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(3); // Default from mock
+
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<number>;
+      setUnreadNotifications(customEvent.detail);
+    };
+    window.addEventListener("notifications-update", handleUpdate);
+    return () => window.removeEventListener("notifications-update", handleUpdate);
+  }, []);
 
   return (
     <aside
@@ -84,6 +94,13 @@ export function Sidebar({
             if (item.managerOnly && role !== "asset_manager") return null;
             const Icon = item.icon;
             const isActive = active === item.key;
+            
+            // Override notification badge
+            let displayBadge = item.badge;
+            if (item.key === "notifications") {
+              displayBadge = unreadNotifications > 0 ? unreadNotifications.toString() : null;
+            }
+
             return (
               <li key={item.key}>
                 <button
@@ -101,9 +118,9 @@ export function Sidebar({
                   {!collapsed && (
                     <>
                       <span className="flex-1 truncate text-left">{item.label}</span>
-                      {item.badge && (
+                      {displayBadge && (
                         <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold tabular text-muted-foreground">
-                          {item.badge}
+                          {displayBadge}
                         </span>
                       )}
                     </>

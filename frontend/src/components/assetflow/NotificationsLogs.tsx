@@ -45,13 +45,6 @@ type ActivityLog = {
   ipAddress: string;
 };
 
-const STATS = [
-  { label: "Unread Notifications", value: "3", icon: Bell, cls: "text-blue-500 bg-blue-50" },
-  { label: "Notifications Today", value: "12", icon: Bell, cls: "text-muted-foreground bg-muted" },
-  { label: "Activities Today", value: "156", icon: Activity, cls: "text-muted-foreground bg-muted" },
-  { label: "Critical Alerts", value: "1", icon: AlertCircle, cls: "text-red-500 bg-red-50" },
-];
-
 const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: "N-01",
@@ -138,6 +131,21 @@ export function NotificationsLogs({ role }: { role: Role }) {
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
 
   const canViewLogs = role === "admin" || role === "asset_manager" || role === "department_head";
+
+  const unreadCount = notifications.filter(
+    notification => !notification.isRead
+  ).length;
+
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent("notifications-update", { detail: unreadCount }));
+  }, [unreadCount]);
+
+  const STATS = [
+    { label: "Unread Notifications", value: unreadCount.toString(), icon: Bell, cls: "text-blue-500 bg-blue-50" },
+    { label: "Notifications Today", value: "12", icon: Bell, cls: "text-muted-foreground bg-muted" },
+    { label: "Activities Today", value: "156", icon: Activity, cls: "text-muted-foreground bg-muted" },
+    { label: "Critical Alerts", value: "1", icon: AlertCircle, cls: "text-red-500 bg-red-50" },
+  ];
 
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));

@@ -15,14 +15,26 @@ import { auth } from "../../lib/firebase";
 export function Topbar({
   role,
   onRoleChange,
+  onNavigate,
 }: {
   role: Role;
   onRoleChange: (r: Role) => void;
+  onNavigate: (key: string) => void;
 }) {
   const [user, setUser] = useState<User | null>(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(3); // Default from mock
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => setUser(u));
+  }, []);
+
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<number>;
+      setUnreadNotifications(customEvent.detail);
+    };
+    window.addEventListener("notifications-update", handleUpdate);
+    return () => window.removeEventListener("notifications-update", handleUpdate);
   }, []);
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/60 px-5 backdrop-blur">
@@ -63,11 +75,16 @@ export function Topbar({
       </button>
 
       {/* Notifications */}
-      <button className="relative grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+      <button 
+        onClick={() => onNavigate("notifications")}
+        className="relative grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
         <Bell className="h-4 w-4" />
-        <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground tabular">
-          3
-        </span>
+        {unreadNotifications > 0 && (
+          <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground tabular">
+            {unreadNotifications}
+          </span>
+        )}
       </button>
 
       {/* Profile */}
