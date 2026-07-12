@@ -29,6 +29,15 @@ export async function registerAsset(data: Omit<Asset, "id" | "status" | "assigne
   if (!querySnap.empty) {
     throw new Error(`Asset Tag "${data.assetTag}" is already registered.`);
   }
+
+  // Enforce uniqueness of serialNumber (if provided)
+  if (data.serialNumber) {
+    const qSerial = query(assetsRef, where("serialNumber", "==", data.serialNumber));
+    const querySerialSnap = await getDocs(qSerial);
+    if (!querySerialSnap.empty) {
+      throw new Error(`Serial Number "${data.serialNumber}" is already registered.`);
+    }
+  }
   
   const id = "AST-" + Date.now().toString().slice(-6);
   const asset: Asset = {

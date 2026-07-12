@@ -72,6 +72,8 @@ export interface Asset {
   purchaseCost: number;
   vendor: string;
   location: string;
+  sharedResource?: boolean;
+  photoUrl?: string;
   createdAt: number;
 }
 

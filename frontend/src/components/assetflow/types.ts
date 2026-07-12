@@ -1,8 +1,11 @@
 export type AssetStatus =
   | "Available"
   | "Allocated"
-  | "Maintenance"
-  | "Retired";
+  | "Reserved"
+  | "Under_Maintenance"
+  | "Lost"
+  | "Retired"
+  | "Disposed";
 
 export interface Asset {
   id: string;
@@ -17,4 +20,6 @@ export interface Asset {
   status: AssetStatus;
   assignedTo: string;
   description: string;
+  sharedResource?: boolean;
+  photoUrl?: string;
 }
