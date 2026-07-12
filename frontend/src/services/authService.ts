@@ -111,8 +111,3 @@ export async function promoteUser(uid: string, newRole: UserRole, departmentId: 
     `Promoted user ${oldProfile.email} from ${oldProfile.role} to ${newRole}`
   );
 }
-
-export async function resetPassword(email: string): Promise<void> {
-  await sendPasswordResetEmail(auth, email);
-  await logActivity("Password Reset Requested", `Requested password reset for ${email}`);
-}

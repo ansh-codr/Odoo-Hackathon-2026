@@ -19,6 +19,7 @@ import {
   getAssets, 
   registerAsset, 
   allocateAsset as allocateAssetService,
+  requestTransfer,
   executeDirectTransfer 
 } from "../../services/assetService";
 
@@ -156,9 +157,13 @@ export function Assets() {
     department: string
   ) {
     try {
-      await executeDirectTransfer(assetId, employee);
+      if (userRole === "admin" || userRole === "asset_manager") {
+        await executeDirectTransfer(assetId, employee);
+      } else {
+        await requestTransfer(assetId, employee);
+      }
       await fetchAssets();
-      toast.success("Asset transferred successfully");
+      toast.success(userRole === "admin" || userRole === "asset_manager" ? "Asset transferred successfully" : "Transfer requested successfully");
       setSelectedAsset(null);
       setPage("list");
     } catch (err: any) {

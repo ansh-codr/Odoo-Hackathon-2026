@@ -128,7 +128,7 @@ export async function allocateAsset(
 }
 
 export async function returnAsset(assetId: string, checkInNotes?: string, condition?: string): Promise<void> {
-  await runTransaction(db, async (transaction) => {
+  const result = await runTransaction(db, async (transaction) => {
     const assetRef = doc(db, "assets", assetId);
     const assetSnap = await transaction.get(assetRef);
     if (!assetSnap.exists()) throw new Error("Asset does not exist");
@@ -142,14 +142,16 @@ export async function returnAsset(assetId: string, checkInNotes?: string, condit
 
     // Find active allocation for this asset
     const allocationsRef = collection(db, "allocations");
-    const activeQuery = query(allocationsRef, where("assetId", "==", assetId), where("status", "==", "Active"));
+    const activeQuery = query(allocationsRef, where("assetId", "==", assetId));
     const querySnap = await getDocs(activeQuery);
     
-    querySnap.forEach((doc) => {
-      transaction.update(doc.ref, {
-        status: "Returned",
-        returnedAt: Date.now()
-      });
+    querySnap.forEach((docSnap) => {
+      if (docSnap.data().status === "Active") {
+        transaction.update(docSnap.ref, {
+          status: "Returned",
+          returnedAt: Date.now()
+        });
+      }
     });
 
     // Update Asset back to Available
@@ -160,20 +162,23 @@ export async function returnAsset(assetId: string, checkInNotes?: string, condit
       departmentId: null
     });
 
-    if (oldUserId) {
-      // Send notification inside transaction callback trigger (run after commit is safest, but queued here)
-      sendNotification(
-        oldUserId,
-        "Asset Returned",
-        `Asset ${assetData.name} (${assetData.assetTag}) has been returned successfully.`
-      );
-    }
-    
     // If checkInNotes provided, append to the asset description for now
     if (checkInNotes) {
-      transaction.update(assetRef, { description: assetData.description + "\\nCheck-in Notes: " + checkInNotes });
+      const currentDesc = assetData.description || "";
+      transaction.update(assetRef, { description: currentDesc + "\\nCheck-in Notes: " + checkInNotes });
     }
+
+    return { oldUserId, assetName: assetData.name, assetTag: assetData.assetTag };
   });
+
+  if (result.oldUserId) {
+    await sendNotification(
+      result.oldUserId,
+      "Asset Returned",
+      `Asset ${result.assetName} (${result.assetTag}) has been returned successfully.`
+    );
+  }
+
   await logActivity("Return Asset", `Returned asset ${assetId}`);
 }
 
@@ -224,6 +229,7 @@ export async function requestTransfer(assetId: string, toUserId: string): Promis
   );
 }
 
+
 export async function executeDirectTransfer(assetId: string, toUserId: string): Promise<void> {
   const currentUser = auth.currentUser;
   if (!currentUser) throw new Error("Authentication required");
@@ -248,13 +254,15 @@ export async function executeDirectTransfer(assetId: string, toUserId: string): 
 
     // 1. Close current active allocation
     const allocationsRef = collection(db, "allocations");
-    const activeQuery = query(allocationsRef, where("assetId", "==", assetId), where("status", "==", "Active"));
+    const activeQuery = query(allocationsRef, where("assetId", "==", assetId));
     const querySnap = await getDocs(activeQuery);
     querySnap.forEach((docSnap) => {
-      transaction.update(docSnap.ref, {
-        status: "Returned",
-        returnedAt: Date.now()
-      });
+      if (docSnap.data().status === "Active") {
+        transaction.update(docSnap.ref, {
+          status: "Returned",
+          returnedAt: Date.now()
+        });
+      }
     });
 
     // 2. Create new allocation

@@ -84,3 +84,50 @@ Design and develop an Enterprise Asset & Resource Management System where organi
 - [ ] **Video Link Submission:** 12 Jul, 05:45 PM
 
 ---
+
+## 🚀 Live Demo & Deployment
+- **Firebase Deploy Link:** [https://odoo-hack-bc2bd.web.app/](https://odoo-hack-bc2bd.web.app/)
+
+---
+
+## 🛠️ How to Run Locally
+
+### Prerequisites
+- Node.js (v18+ recommended)
+- npm
+
+### Steps to Run
+1. **Navigate to the frontend directory:**
+   ```bash
+   cd frontend
+   ```
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+3. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+4. **Access the application:** Open your browser and navigate to `http://localhost:3000` (or the port specified in your terminal).
+
+---
+
+## ✅ What is Implemented
+
+1. **Authentication & Authorization:** 
+   - Login, Signup, and Google Authentication integration.
+   - Password reset workflow via Firebase.
+   - Fully functional role-based access control (Admin, Asset Manager, Department Head, Employee).
+2. **Organization Setup:** 
+   - Complete management of Departments, Asset Categories, and Employee Directory.
+   - Admins can edit employee profiles and instantly promote/demote roles (e.g., promoting an Employee to Asset Manager).
+3. **Asset Registration & Allocation:**
+   - Asset Managers can register new assets into the system.
+   - Robust allocation and return workflows with conflict handling (prevents double allocations).
+   - "Direct Transfer" capability for Asset Managers, bypassing the pending request workflow.
+   - "Transfer Request" workflow for regular employees.
+4. **Dashboard & Tracking:**
+   - Real-time operational snapshot and key metrics (Total Assets, Currently Allocated, Under Maintenance, Upcoming Bookings).
+   - Automatic flagging and alerting for overdue asset returns.
+   - Activity logging for all critical system actions.
