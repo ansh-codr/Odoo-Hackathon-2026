@@ -93,7 +93,7 @@ function Nav({ c, dark, onToggle }: any) {
             style={{ width:34, height:34, borderRadius:8, border:`1px solid ${c.border}`, background:c.surface, cursor:"pointer", color:c.muted, display:"flex", alignItems:"center", justifyContent:"center" }}>
             {dark ? <Sun size={15}/> : <Moon size={15}/>}
           </button>
-          <Link to="/app"
+          <Link to="/login"
             style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 18px", borderRadius:10, background:"linear-gradient(135deg,#7c3aed,#a855f7)", color:"#fff", fontWeight:700, fontSize:14, textDecoration:"none", boxShadow:"0 4px 18px rgba(124,58,237,0.38)" }}>
             Get Started <ArrowRight size={14}/>
           </Link>
@@ -147,7 +147,7 @@ function Hero({ c, dark }: any) {
 
         {/* CTAs */}
         <div style={{ display:"flex", flexWrap:"wrap", justifyContent:"center", gap:14, marginBottom:36 }}>
-          <Link to="/app"
+          <Link to="/login"
             style={{ display:"flex", alignItems:"center", gap:8, height:50, padding:"0 28px", borderRadius:13, background:"linear-gradient(135deg,#7c3aed,#a855f7)", color:"#fff", fontWeight:800, fontSize:15, textDecoration:"none", boxShadow:"0 8px 28px rgba(124,58,237,0.45)", transition:"transform .2s,box-shadow .2s" }}
             onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 14px 36px rgba(124,58,237,0.55)"}}
             onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="0 8px 28px rgba(124,58,237,0.45)"}}>
@@ -497,7 +497,7 @@ function CTA({ c }: any) {
               Set up your organization in under 10 minutes. Import from any spreadsheet. No credit card required.
             </p>
             <div style={{ display:"flex", flexWrap:"wrap", justifyContent:"center", gap:14 }}>
-              <Link to="/app"
+              <Link to="/login"
                 style={{ display:"flex", alignItems:"center", gap:8, height:50, padding:"0 30px", borderRadius:13, background:"linear-gradient(135deg,#7c3aed,#a855f7)", color:"#fff", fontWeight:800, fontSize:15, textDecoration:"none", boxShadow:"0 8px 32px rgba(124,58,237,0.55)", transition:"transform .2s" }}
                 onMouseEnter={e=>(e.currentTarget.style.transform="translateY(-3px)")}
                 onMouseLeave={e=>(e.currentTarget.style.transform="none")}>
