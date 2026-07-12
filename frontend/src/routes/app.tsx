@@ -6,6 +6,7 @@ import { Topbar } from "@/components/assetflow/Topbar";
 import { Dashboard } from "@/components/assetflow/Dashboard";
 import { ResourceBookings } from "@/components/assetflow/ResourceBookings";
 import { MaintenanceManagement } from "@/components/assetflow/MaintenanceManagement";
+import { ApprovalCenter } from "@/components/assetflow/ApprovalCenter";
 import { Assets } from "@/components/assetflow/Assets";
 
 export const Route = createFileRoute("/app")({
@@ -39,6 +40,8 @@ function AppShell() {
             <ResourceBookings />
           ) : active === "maintenance" ? (
             <MaintenanceManagement />
+          ) : active === "approvals" ? (
+            <ApprovalCenter />
           ) : (
             <div className="grid h-full place-items-center text-sm text-muted-foreground">
               <div className="text-center">

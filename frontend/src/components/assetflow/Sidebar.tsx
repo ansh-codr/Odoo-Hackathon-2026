@@ -22,6 +22,7 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   badge: string | null;
   adminOnly?: boolean;
+  managerOnly?: boolean;
 };
 
 const NAV: NavItem[] = [
@@ -30,6 +31,7 @@ const NAV: NavItem[] = [
   { key: "allocations", label: "Allocations", icon: ArrowLeftRight, badge: null },
   { key: "bookings", label: "Bookings", icon: CalendarClock, badge: "12" },
   { key: "maintenance", label: "Maintenance", icon: Wrench, badge: "4" },
+  { key: "approvals", label: "Approvals", icon: ClipboardCheck, badge: "14", managerOnly: true },
   { key: "audits", label: "Audits", icon: ClipboardCheck, badge: null },
   { key: "reports", label: "Reports", icon: BarChart3, badge: null },
   { key: "notifications", label: "Notifications", icon: Bell, badge: "3" },
@@ -79,6 +81,7 @@ export function Sidebar({
         <ul className="space-y-0.5">
           {NAV.map((item) => {
             if (item.adminOnly && role !== "admin") return null;
+            if (item.managerOnly && role !== "asset_manager") return null;
             const Icon = item.icon;
             const isActive = active === item.key;
             return (

@@ -15,6 +15,7 @@ export type AssetStatus =
   | "pending"
   | "approved"
   | "rejected"
+  | "escalated"
   | "technician_assigned"
   | "in_progress"
   | "resolved"
@@ -93,6 +94,11 @@ const STATUS_META: Record<AssetStatus, { label: string; cls: string; dot: string
     label: "Rejected",
     cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
     dot: "bg-red-500",
+  },
+  escalated: {
+    label: "Escalated",
+    cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    dot: "bg-orange-500",
   },
   technician_assigned: {
     label: "Technician Assigned",
