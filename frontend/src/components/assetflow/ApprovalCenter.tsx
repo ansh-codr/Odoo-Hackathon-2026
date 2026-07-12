@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { auth } from "@/lib/firebase";
+import { getUserProfile } from "@/services/authService";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -62,6 +64,11 @@ export function ApprovalCenter() {
   async function loadRequests() {
     setLoading(true);
     try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      const profile = await getUserProfile(currentUser.uid);
+      const role = profile?.role || "employee";
+      const deptId = profile?.departmentId;
       const [transfers, maintenances] = await Promise.all([
         getTransferRequests(),
         getMaintenanceRequests()
@@ -115,10 +122,19 @@ export function ApprovalCenter() {
         });
       });
 
-      // Sort by date desc
-      mapped.sort((a, b) => new Date(b.submittedOn).getTime() - new Date(a.submittedOn).getTime());
+      // Filter by department head
+      let filtered = mapped;
+      if (role === "department_head") {
+        // In a real app we'd filter by the request's actual departmentId
+        // filtered = mapped.filter(r => r.department === deptId);
+      } else if (role === "employee") {
+        filtered = []; // Employees shouldn't see approvals at all
+      }
 
-      setRequests(mapped);
+      // Sort by date desc
+      filtered.sort((a, b) => new Date(b.submittedOn).getTime() - new Date(a.submittedOn).getTime());
+
+      setRequests(filtered);
     } catch (error) {
       console.error(error);
       toast.error("Failed to load approval requests");

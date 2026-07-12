@@ -27,21 +27,20 @@ type NavItem = {
   label: string;
   icon: typeof LayoutDashboard;
   badge: string | null;
-  adminOnly?: boolean;
-  managerOnly?: boolean;
+  allowedRoles: Role[];
 };
 
 const NAV: NavItem[] = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
-  { key: "assets", label: "Assets", icon: Package, badge: "1,284" },
-  { key: "allocations", label: "Allocations", icon: ArrowLeftRight, badge: null },
-  { key: "bookings", label: "Bookings", icon: CalendarClock, badge: "12" },
-  { key: "maintenance", label: "Maintenance", icon: Wrench, badge: "4" },
-  { key: "approvals", label: "Approvals", icon: ClipboardCheck, badge: "14", managerOnly: true },
-  { key: "audits", label: "Audits", icon: ClipboardCheck, badge: null },
-  { key: "reports", label: "Reports", icon: BarChart3, badge: null },
-  { key: "notifications", label: "Notifications", icon: Bell, badge: "3" },
-  { key: "org", label: "Organization Setup", icon: Building2, badge: null, adminOnly: true },
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null, allowedRoles: ["admin", "asset_manager", "department_head", "employee"] },
+  { key: "assets", label: "Assets", icon: Package, badge: "1,284", allowedRoles: ["admin", "asset_manager", "department_head", "employee"] },
+  { key: "allocations", label: "Allocations", icon: ArrowLeftRight, badge: null, allowedRoles: ["admin", "asset_manager", "department_head", "employee"] },
+  { key: "bookings", label: "Bookings", icon: CalendarClock, badge: "12", allowedRoles: ["admin", "asset_manager", "department_head", "employee"] },
+  { key: "maintenance", label: "Maintenance", icon: Wrench, badge: "4", allowedRoles: ["admin", "asset_manager", "department_head", "employee"] },
+  { key: "approvals", label: "Approvals", icon: ClipboardCheck, badge: "14", allowedRoles: ["asset_manager", "department_head"] },
+  { key: "audits", label: "Audits", icon: ClipboardCheck, badge: null, allowedRoles: ["admin", "asset_manager"] },
+  { key: "reports", label: "Reports", icon: BarChart3, badge: null, allowedRoles: ["admin", "department_head"] },
+  { key: "notifications", label: "Notifications", icon: Bell, badge: "3", allowedRoles: ["admin", "asset_manager", "department_head", "employee"] },
+  { key: "org", label: "Organization Setup", icon: Building2, badge: null, allowedRoles: ["admin"] },
 ];
 
 export function Sidebar({
@@ -137,8 +136,7 @@ export function Sidebar({
         )}
         <ul className="space-y-0.5">
           {NAV.map((item) => {
-            if (item.adminOnly && role !== "admin") return null;
-            if (item.managerOnly && role !== "asset_manager") return null;
+            if (!item.allowedRoles.includes(role)) return null;
             const Icon = item.icon;
             const isActive = active === item.key;
             

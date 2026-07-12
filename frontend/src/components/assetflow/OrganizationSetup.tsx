@@ -69,7 +69,7 @@ export function OrganizationSetup({ role }: { role: Role }) {
   // Forms
   const [deptForm, setDeptForm] = useState({ name: "", head: "", parent: "", desc: "", status: "active" });
   const [catForm, setCatForm] = useState({ name: "", desc: "", warranty: "", status: "active" });
-  const [promoteForm, setPromoteForm] = useState({ role: "" });
+  const [promoteForm, setPromoteForm] = useState({ role: "", departmentId: "" });
   const [editEmpForm, setEditEmpForm] = useState({ name: "", email: "", department: "", role: "", status: "active" });
 
   // Load data from Firestore
@@ -623,6 +623,19 @@ export function OrganizationSetup({ role }: { role: Role }) {
               </Select>
             </div>
           </div>
+            {promoteForm.role === "Department Head" && (
+              <div className="grid gap-2 mt-4">
+                <Label>Assign to Department</Label>
+                <Select value={promoteForm.departmentId} onValueChange={v => setPromoteForm({...promoteForm, departmentId: v})}>
+                  <SelectTrigger><SelectValue placeholder="Select a department..." /></SelectTrigger>
+                  <SelectContent>
+                    {departments.map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           <DialogFooter><Button variant="outline" onClick={() => setPromoteModalOpen({open: false, empId: null})}>Cancel</Button><Button onClick={handlePromote}>Confirm Promotion</Button></DialogFooter>
         </DialogContent>
       </Dialog>

@@ -11,6 +11,8 @@ import { TransferAssetPage } from "./TransferAssetPage";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { auth } from "@/lib/firebase";
+import { getUserProfile } from "@/services/authService";
 
 // Services integration
 import { 
@@ -23,6 +25,7 @@ import {
 export function Assets() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string>("employee");
 
   const [search, setSearch] = useState("");
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -37,8 +40,23 @@ export function Assets() {
   async function fetchAssets() {
     try {
       setLoading(true);
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      const profile = await getUserProfile(currentUser.uid);
+      const role = profile?.role || "employee";
+      const deptId = profile?.departmentId;
+      setUserRole(role);
+
       const list = await getAssets();
-      const mappedList: Asset[] = list.map((a) => ({
+      let filteredList = list;
+
+      if (role === "department_head") {
+        filteredList = list.filter(a => a.departmentId === deptId);
+      } else if (role === "employee") {
+        filteredList = list.filter(a => a.assignedToId === currentUser.uid || a.sharedResource);
+      }
+
+      const mappedList: Asset[] = filteredList.map((a) => ({
         id: a.id,
         assetTag: a.assetTag,
         name: a.name,
@@ -52,7 +70,9 @@ export function Assets() {
         assignedTo: a.assignedToName || "—",
         description: a.description,
         sharedResource: a.sharedResource,
-        photoUrl: a.photoUrl
+        photoUrl: a.photoUrl,
+        assignedToId: a.assignedToId,
+        departmentId: a.departmentId
       }));
       setAssets(mappedList);
     } catch (err) {
@@ -180,18 +200,24 @@ export function Assets() {
               </p>
             </div>
 
-            <Button onClick={() => setRegisterOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Register Asset
-            </Button>
           </div>
 
-      <div className="mb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center mb-5">
         <Input
-          placeholder="Search assets..."
+          placeholder="Filter assets..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          className="max-w-xs bg-background"
         />
+        {(userRole === "admin" || userRole === "asset_manager") && (
+          <Button
+            onClick={() => setRegisterOpen(true)}
+            className="ml-auto flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Register Asset
+          </Button>
+        )}
       </div>
 
       <AssetTable
