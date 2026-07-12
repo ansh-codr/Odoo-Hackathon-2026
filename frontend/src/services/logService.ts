@@ -1,5 +1,6 @@
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
+import { ActivityLog } from "./types";
 
 export async function logActivity(action: string, details: string): Promise<void> {
   try {
@@ -16,3 +17,14 @@ export async function logActivity(action: string, details: string): Promise<void
     console.error("Error logging activity:", error);
   }
 }
+
+export async function getActivityLogs(): Promise<ActivityLog[]> {
+  const colRef = collection(db, "activityLogs");
+  const q = query(colRef, orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }) as ActivityLog);
+}
+
