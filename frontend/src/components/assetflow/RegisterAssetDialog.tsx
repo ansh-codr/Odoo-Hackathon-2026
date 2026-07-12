@@ -38,6 +38,8 @@ export function RegisterAssetDialog({
     status: "Available" as AssetStatus,
     assignedTo: "",
     description: "",
+    sharedResource: false,
+    photoUrl: ""
   });
 
   function handleChange(
@@ -46,6 +48,13 @@ export function RegisterAssetDialog({
     setForm((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
+    }));
+  }
+
+  function handleCheckboxChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm((prev) => ({
+      ...prev,
+      sharedResource: e.target.checked
     }));
   }
 
@@ -69,6 +78,8 @@ export function RegisterAssetDialog({
       status: "Available",
       assignedTo: "",
       description: "",
+      sharedResource: false,
+      photoUrl: ""
     });
 
     onOpenChange(false);
@@ -79,29 +90,30 @@ export function RegisterAssetDialog({
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Register Asset</DialogTitle>
-
           <DialogDescription>
-            Add a new company asset.
+            Add a new company asset. Newly registered assets start as Available.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-4">
-
           <div>
-            <Label>Asset Name</Label>
+            <Label>Asset Name *</Label>
             <Input
               name="name"
               value={form.name}
               onChange={handleChange}
+              required
             />
           </div>
 
           <div>
-            <Label>Asset Tag</Label>
+            <Label>Asset Tag * (Unique)</Label>
             <Input
               name="assetTag"
               value={form.assetTag}
               onChange={handleChange}
+              placeholder="e.g. AST-0001"
+              required
             />
           </div>
 
@@ -111,11 +123,12 @@ export function RegisterAssetDialog({
               name="category"
               value={form.category}
               onChange={handleChange}
+              placeholder="e.g. Electronics, Furniture"
             />
           </div>
 
           <div>
-            <Label>Serial Number</Label>
+            <Label>Serial Number (Unique)</Label>
             <Input
               name="serialNumber"
               value={form.serialNumber}
@@ -124,7 +137,7 @@ export function RegisterAssetDialog({
           </div>
 
           <div>
-            <Label>Purchase Date</Label>
+            <Label>Acquisition Date</Label>
             <Input
               type="date"
               name="purchaseDate"
@@ -134,11 +147,12 @@ export function RegisterAssetDialog({
           </div>
 
           <div>
-            <Label>Purchase Cost</Label>
+            <Label>Acquisition Cost ($)</Label>
             <Input
               name="purchaseCost"
               value={form.purchaseCost}
               onChange={handleChange}
+              placeholder="e.g. 1200"
             />
           </div>
 
@@ -157,42 +171,46 @@ export function RegisterAssetDialog({
               name="location"
               value={form.location}
               onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <Label>Assigned To</Label>
-            <Input
-              name="assignedTo"
-              value={form.assignedTo}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <Label>Status</Label>
-            <Input
-              name="status"
-              value={form.status}
-              onChange={handleChange}
+              placeholder="e.g. HQ Floor 3"
             />
           </div>
 
           <div className="col-span-2">
-            <Label>Description</Label>
+            <Label>Photo / Document URL</Label>
+            <Input
+              name="photoUrl"
+              value={form.photoUrl}
+              onChange={handleChange}
+              placeholder="e.g. https://example.com/asset-photo.jpg"
+            />
+          </div>
 
+          <div className="col-span-2 flex items-center gap-2 py-2">
+            <input
+              type="checkbox"
+              id="sharedResource"
+              name="sharedResource"
+              checked={form.sharedResource}
+              onChange={handleCheckboxChange}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <Label htmlFor="sharedResource" className="cursor-pointer">
+              Shared Resource / Bookable (Available for booking by slots)
+            </Label>
+          </div>
+
+          <div className="col-span-2">
+            <Label>Description</Label>
             <Textarea
-              rows={4}
+              rows={3}
               name="description"
               value={form.description}
               onChange={handleChange}
             />
           </div>
-
         </div>
 
         <DialogFooter>
-
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -203,7 +221,6 @@ export function RegisterAssetDialog({
           <Button onClick={save}>
             Save Asset
           </Button>
-
         </DialogFooter>
       </DialogContent>
     </Dialog>
