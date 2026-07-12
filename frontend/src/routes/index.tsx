@@ -20,7 +20,18 @@ export const Route = createFileRoute("/")({
 /* ──────────────────────────────────────────────────────────── */
 
 function Landing() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("assera_theme") === "dark";
+    return false;
+  });
+
+  const toggleDark = () => {
+    setDark((prev: boolean) => {
+      const next = !prev;
+      if (typeof window !== "undefined") localStorage.setItem("assera_theme", next ? "dark" : "light");
+      return next;
+    });
+  };
 
   const c = dark
     ? {
@@ -50,7 +61,7 @@ function Landing() {
 
   return (
     <div style={{ background: c.bg, color: c.text, fontFamily: "Inter, sans-serif", overflowX: "hidden" }}>
-      <Nav c={c} dark={dark} onToggle={() => setDark(!dark)} />
+      <Nav c={c} dark={dark} onToggle={toggleDark} />
       <Hero c={c} dark={dark} />
       <Stats c={c} />
       <Features c={c} />

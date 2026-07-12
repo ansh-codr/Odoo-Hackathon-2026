@@ -8,6 +8,10 @@ const ROLE_LABEL: Record<Role, string> = {
   employee: "Employee",
 };
 
+import { useEffect, useState } from "react";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "../../lib/firebase";
+
 export function Topbar({
   role,
   onRoleChange,
@@ -15,6 +19,11 @@ export function Topbar({
   role: Role;
   onRoleChange: (r: Role) => void;
 }) {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (u) => setUser(u));
+  }, []);
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/60 px-5 backdrop-blur">
       {/* Search */}
@@ -63,11 +72,13 @@ export function Topbar({
 
       {/* Profile */}
       <button className="flex items-center gap-2 rounded-md pl-1 pr-2 py-1 hover:bg-muted">
-        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
-          PS
+        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground uppercase">
+          {user ? (user.displayName ? user.displayName.slice(0, 2) : user.email?.slice(0, 2)) : "US"}
         </div>
         <div className="hidden text-left leading-tight md:block">
-          <div className="text-xs font-semibold text-foreground">Priya Sharma</div>
+          <div className="text-xs font-semibold text-foreground">
+            {user ? (user.displayName || user.email) : "Guest User"}
+          </div>
           <div className="text-[10px] font-medium text-muted-foreground">{ROLE_LABEL[role]}</div>
         </div>
         <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground md:block" />
