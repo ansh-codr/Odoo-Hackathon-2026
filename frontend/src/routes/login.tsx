@@ -1,6 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { ArrowRight, Lock, Mail, AlertCircle, UserPlus, Sun, Moon } from "lucide-react";
 
@@ -11,38 +17,15 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
-const withTimeout = <T extends unknown>(promise: Promise<T>, timeoutMs: number = 10000, errorMsg: string): Promise<T> => {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(errorMsg));
-    }, timeoutMs);
-
-    promise
-      .then((res) => {
-        clearTimeout(timer);
-        resolve(res);
-      })
-      .catch((err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
-  });
-};
-
 function Login() {
   const navigate = useNavigate();
+
   const [dark, setDark] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("assera_theme") === "dark";
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("assera_theme") === "dark";
+    }
     return false;
   });
-
-  const toggleDark = () => {
-    setDark((prev) => {
-      const next = !prev;
-      if (typeof window !== "undefined") localStorage.setItem("assera_theme", next ? "dark" : "light");
-      return next;
-    });
-  };
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -50,6 +33,16 @@ function Login() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const toggleDark = () => {
+    setDark((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("assera_theme", next ? "dark" : "light");
+      }
+      return next;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,34 +54,17 @@ function Login() {
     setError(null);
     try {
       if (isSignUp) {
-        const userCred = await withTimeout(
-          createUserWithEmailAndPassword(auth, email, password),
-          10000,
-          "Sign-up request timed out after 10 seconds. Check your internet connection or Firebase setup."
-        );
-        await withTimeout(
-          updateProfile(userCred.user, { displayName: name }),
-          10000,
-          "Profile update timed out."
-        );
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCred.user, { displayName: name });
       } else {
-        await withTimeout(
-          signInWithEmailAndPassword(auth, email, password),
-          10000,
-          "Login request timed out after 10 seconds. Check your internet connection or Firebase setup."
-        );
+        await signInWithEmailAndPassword(auth, email, password);
       }
       navigate({ to: "/app" });
     } catch (err: any) {
-      console.error("Authentication error details:", err);
       if (isSignUp) {
         setError(err.message || "Failed to create account. Please try again.");
       } else {
-        if (err.message && err.message.includes("timed out")) {
-          setError(err.message);
-        } else {
-          setError("Invalid email or password. Please try again.");
-        }
+        setError("Invalid email or password. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -100,85 +76,45 @@ function Login() {
     setError(null);
     try {
       const provider = new GoogleAuthProvider();
-      await withTimeout(
-        signInWithPopup(auth, provider),
-        10000,
-        "Google sign-in request timed out after 10 seconds. Check your internet connection or Firebase setup."
-      );
+      await signInWithPopup(auth, provider);
       navigate({ to: "/app" });
-    } catch (err: any) {
-      console.error("Google sign-in error details:", err);
-      if (err.message && err.message.includes("timed out")) {
-        setError(err.message);
-      } else {
-        setError("Failed to sign in with Google. Please try again.");
-      }
+    } catch {
+      setError("Failed to sign in with Google. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const theme = dark ? {
-    bg: "#0a0a12",
-    text: "#f0efff",
-    muted: "rgba(240,239,255,0.55)",
-    surface: "rgba(255,255,255,0.03)",
-    surfaceHover: "rgba(255,255,255,0.05)",
-    border: "rgba(255,255,255,0.08)",
-    inputBg: "rgba(0,0,0,0.3)",
-    inputBorder: "rgba(255,255,255,0.1)",
-    inputFocus: "rgba(124,58,237,0.5)",
-    googleBtnBg: "rgba(255,255,255,0.05)",
-    googleBtnHover: "rgba(255,255,255,0.08)",
-  } : {
-    bg: "#f6f5ff",
-    text: "#0f0d1f",
-    muted: "rgba(15,13,31,0.55)",
-    surface: "#ffffff",
-    surfaceHover: "rgba(0,0,0,0.02)",
-    border: "rgba(0,0,0,0.09)",
-    inputBg: "#ffffff",
-    inputBorder: "rgba(0,0,0,0.15)",
-    inputFocus: "rgba(124,58,237,0.5)",
-    googleBtnBg: "#ffffff",
-    googleBtnHover: "#f1f1f1",
-  };
-
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: theme.bg, color: theme.text, fontFamily: "Inter, sans-serif", padding: 24, position: "relative", overflow: "hidden", transition: "background 0.3s, color 0.3s" }}>
-      
-      {/* Theme Toggle Button */}
-      <button 
-        onClick={toggleDark}
-        title="Toggle theme"
-        style={{ position: "absolute", top: 24, right: 24, zIndex: 10, width: 40, height: 40, borderRadius: 12, border: `1px solid ${theme.border}`, background: theme.surface, cursor: "pointer", color: theme.muted, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}
-      >
-        {dark ? <Sun size={18}/> : <Moon size={18}/>}
+    <div className={`login-page${dark ? " dark" : ""}`}>
+      {/* Theme Toggle */}
+      <button className="login-theme-btn" onClick={toggleDark} title="Toggle theme">
+        {dark ? <Sun size={18} /> : <Moon size={18} />}
       </button>
 
-      {/* Background Ornaments */}
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(${dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)"} 1px, transparent 1px), linear-gradient(90deg, ${dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)"} 1px, transparent 1px)`, backgroundSize: "60px 60px" }} />
-        <div style={{ position: "absolute", top: "10%", left: "15%", width: 320, height: 320, borderRadius: "50%", background: `radial-gradient(circle, ${dark ? "rgba(124,58,237,0.2)" : "rgba(124,58,237,0.1)"}, transparent 70%)`, filter: "blur(70px)", animation: "float1 8s ease-in-out infinite" }} />
-        <div style={{ position: "absolute", bottom: "10%", right: "15%", width: 240, height: 240, borderRadius: "50%", background: `radial-gradient(circle, ${dark ? "rgba(6,182,212,0.15)" : "rgba(6,182,212,0.08)"}, transparent 70%)`, filter: "blur(60px)", animation: "float2 11s ease-in-out infinite" }} />
-      </div>
+      {/* Background */}
+      <div className="login-grid-bg" />
+      <div className="login-orb-1" />
+      <div className="login-orb-2" />
 
+      {/* Content */}
       <div style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
+        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: 16, background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.2)", marginBottom: 20 }}>
-            <img src="/Fevicon.png" alt="Assera Logo" style={{ width: 32, height: 32, objectFit: "contain" }} />
+            <img src="/Fevicon.png" alt="Assera" style={{ width: 32, height: 32, objectFit: "contain" }} />
           </div>
-          <h1 style={{ fontFamily: "Inter Tight, Inter, sans-serif", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 12 }}>
+          <h1 style={{ fontFamily: "Inter Tight, Inter, sans-serif", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 12px" }}>
             {isSignUp ? "Create Account" : "Welcome back"}
           </h1>
-          <p style={{ color: theme.muted, fontSize: 15 }}>
+          <p className="login-muted" style={{ fontSize: 15, margin: 0 }}>
             {isSignUp ? "Sign up to start tracking your assets" : "Sign in to access your asset dashboard"}
           </p>
         </div>
 
-        <div style={{ background: theme.surface, backdropFilter: "blur(20px)", border: `1px solid ${theme.border}`, borderRadius: 24, padding: "40px 32px", boxShadow: dark ? "0 24px 64px rgba(0,0,0,0.4)" : "0 12px 32px rgba(0,0,0,0.05)", transition: "all 0.3s" }}>
+        {/* Card */}
+        <div className="login-card">
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            
             {error && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", fontSize: 14 }}>
                 <AlertCircle size={16} />
@@ -188,85 +124,79 @@ function Login() {
 
             {isSignUp && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>Full Name</label>
+                <label className="login-label">Full Name</label>
                 <div style={{ position: "relative" }}>
-                  <UserPlus size={16} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: theme.muted }} />
-                  <input 
-                    type="text" 
+                  <UserPlus size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                  <input
+                    className="login-input"
+                    type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jane Doe"
-                    style={{ width: "100%", height: 48, padding: "0 16px 0 44px", borderRadius: 12, background: theme.inputBg, border: `1px solid ${theme.inputBorder}`, color: theme.text, fontSize: 15, outline: "none", transition: "border-color 0.2s" }}
-                    onFocus={(e) => e.target.style.borderColor = theme.inputFocus}
-                    onBlur={(e) => e.target.style.borderColor = theme.inputBorder}
+                    autoComplete="name"
                   />
                 </div>
               </div>
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>Work Email</label>
+              <label className="login-label">Work Email</label>
               <div style={{ position: "relative" }}>
-                <Mail size={16} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: theme.muted }} />
-                <input 
-                  type="email" 
+                <Mail size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                <input
+                  className="login-input"
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  style={{ width: "100%", height: 48, padding: "0 16px 0 44px", borderRadius: 12, background: theme.inputBg, border: `1px solid ${theme.inputBorder}`, color: theme.text, fontSize: 15, outline: "none", transition: "border-color 0.2s" }}
-                  onFocus={(e) => e.target.style.borderColor = theme.inputFocus}
-                  onBlur={(e) => e.target.style.borderColor = theme.inputBorder}
+                  autoComplete="email"
                 />
               </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>Password</label>
-                {!isSignUp && <a href="#" style={{ fontSize: 13, color: "#a855f7", textDecoration: "none", fontWeight: 500 }}>Forgot password?</a>}
+                <label className="login-label">Password</label>
+                {!isSignUp && (
+                  <a href="#" style={{ fontSize: 13, color: "#a855f7", textDecoration: "none", fontWeight: 500 }}>
+                    Forgot password?
+                  </a>
+                )}
               </div>
               <div style={{ position: "relative" }}>
-                <Lock size={16} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: theme.muted }} />
-                <input 
-                  type="password" 
+                <Lock size={16} className="login-muted" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                <input
+                  className="login-input"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  style={{ width: "100%", height: 48, padding: "0 16px 0 44px", borderRadius: 12, background: theme.inputBg, border: `1px solid ${theme.inputBorder}`, color: theme.text, fontSize: 15, outline: "none", transition: "border-color 0.2s" }}
-                  onFocus={(e) => e.target.style.borderColor = theme.inputFocus}
-                  onBlur={(e) => e.target.style.borderColor = theme.inputBorder}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
                 />
               </div>
             </div>
 
-            <button 
-              type="submit"
-              disabled={loading}
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #7c3aed, #a855f7)", color: "#fff", fontSize: 15, fontWeight: 700, border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, marginTop: 12, transition: "transform 0.2s, box-shadow 0.2s", boxShadow: "0 4px 20px rgba(124,58,237,0.3)" }}
-              onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(124,58,237,0.4)"; } }}
-              onMouseLeave={(e) => { if (!loading) { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(124,58,237,0.3)"; } }}
-            >
-              {loading ? (isSignUp ? "Creating account..." : "Signing in...") : (
-                <>{isSignUp ? "Create Account" : "Sign In"} <ArrowRight size={16} /></>
-              )}
+            <button type="submit" disabled={loading} className="login-submit-btn" style={{ width: "100%" }}>
+              {loading
+                ? isSignUp ? "Creating account..." : "Signing in..."
+                : <>{isSignUp ? "Create Account" : "Sign In"} <ArrowRight size={16} /></>
+              }
             </button>
           </form>
 
           {!isSignUp && (
             <>
-              <div style={{ display: "flex", alignItems: "center", margin: "24px 0" }}>
-                <div style={{ flex: 1, height: 1, background: theme.border }} />
-                <span style={{ padding: "0 12px", fontSize: 12, fontWeight: 600, color: theme.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Or continue with</span>
-                <div style={{ flex: 1, height: 1, background: theme.border }} />
+              <div className="login-divider">
+                <div className="login-divider-line" />
+                <span className="login-divider-text">Or continue with</span>
+                <div className="login-divider-line" />
               </div>
 
-              <button 
+              <button
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, height: 48, borderRadius: 12, background: theme.googleBtnBg, border: `1px solid ${theme.border}`, color: theme.text, fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "background 0.2s, border-color 0.2s", marginBottom: 24 }}
-                onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = theme.googleBtnHover; } }}
-                onMouseLeave={(e) => { if (!loading) { e.currentTarget.style.background = theme.googleBtnBg; } }}
+                className="login-google-btn"
               >
                 <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -279,31 +209,34 @@ function Login() {
             </>
           )}
 
+          {/* Sign up / New here section */}
           <div style={{ marginTop: isSignUp ? 24 : 0 }}>
             {isSignUp ? (
               <div style={{ textAlign: "center" }}>
-                <span style={{ fontSize: 14, color: theme.muted }}>Already have an account? </span>
-                <button type="button" onClick={() => setIsSignUp(false)} style={{ background: "none", border: "none", fontSize: 14, color: theme.text, fontWeight: 600, cursor: "pointer", padding: 0 }}>Sign In</button>
+                <span className="login-muted" style={{ fontSize: 14 }}>Already have an account? </span>
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(false)}
+                  style={{ background: "none", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, color: "inherit" }}
+                >
+                  Sign In
+                </button>
               </div>
             ) : (
               <div>
-                <div style={{ display: "flex", alignItems: "center", margin: "24px 0" }}>
-                  <div style={{ flex: 1, height: 1, background: theme.border }} />
+                <div className="login-divider">
+                  <div className="login-divider-line" />
                 </div>
-                
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: theme.text, marginBottom: 12 }}>New here?</h3>
-                <div style={{ background: theme.surfaceHover, border: `1px solid ${theme.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                  <p style={{ fontSize: 14, color: theme.muted, lineHeight: 1.5, margin: 0 }}>
-                    Sign up creates an employee account.<br/>Admin roles assigned later.
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 12px" }}>New here?</h3>
+                <div className="login-info-box">
+                  <p className="login-muted" style={{ fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+                    Sign up creates an employee account.<br />Admin roles assigned later.
                   </p>
                 </div>
-                
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsSignUp(true)}
-                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 48, borderRadius: 12, background: "transparent", border: `1px solid ${theme.border}`, color: theme.text, fontSize: 15, fontWeight: 600, cursor: "pointer", transition: "background 0.2s" }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = theme.surfaceHover}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  className="login-secondary-btn"
                 >
                   Create Account
                 </button>
@@ -312,10 +245,10 @@ function Login() {
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 32, fontSize: 12, color: theme.muted }}>
-          <a href="/" style={{ color: "inherit", textDecoration: "none" }}>← Back to Website</a>
-          <span>·</span>
-          <span>© 2026 Assera</span>
+        <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 32, fontSize: 12 }}>
+          <a href="/" className="login-muted" style={{ textDecoration: "none" }}>← Back to Website</a>
+          <span className="login-muted">·</span>
+          <span className="login-muted">© 2026 Assera</span>
         </div>
       </div>
     </div>
