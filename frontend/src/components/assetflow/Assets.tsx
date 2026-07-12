@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 
+import type { Asset } from "./types";
+import { initialAssets } from "./data";
+
+import { AssetTable } from "./AssetTable";
 import { RegisterAssetDialog } from "./RegisterAssetDialog";
 import { AllocateAssetDialog } from "./AllocateAssetDialog";
-import { AssetTable } from "./AssetTable";
-import { initialAssets } from "./data";
-import type { Asset } from "./types";
+import { TransferAssetDialog } from "./TransferAssetDialog";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +17,10 @@ export function Assets() {
 
   const [search, setSearch] = useState("");
 
-  const [open, setOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
 
   const [allocateOpen, setAllocateOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
@@ -30,25 +33,53 @@ export function Assets() {
     setAllocateOpen(true);
   }
 
-  function completeAllocation(data: {
-    employee: string;
-    department: string;
-    allocationDate: string;
-    returnDate: string;
-  }) {
-    if (!selectedAsset) return;
+  function handleTransfer(asset: Asset) {
+    setSelectedAsset(asset);
+    setTransferOpen(true);
+  }
 
+ function allocateAsset(data: {
+  employee: string;
+  department: string;
+  allocationDate: string;
+  returnDate: string;
+}) {
+  if (!selectedAsset) return;
+
+  setAssets((prev) =>
+    prev.map((asset) =>
+      asset.id === selectedAsset.id
+        ? {
+            ...asset,
+            assignedTo: data.employee,
+            location: data.department,
+            status: "Allocated",
+          }
+        : asset
+    )
+  );
+
+  setAllocateOpen(false);
+}
+
+  function transferAsset(
+    assetId: string,
+    employee: string,
+    department: string
+  ) {
     setAssets((prev) =>
       prev.map((asset) =>
-        asset.id === selectedAsset.id
+        asset.id === assetId
           ? {
               ...asset,
-              assignedTo: data.employee,
-              status: "Allocated",
+              assignedTo: employee,
+              location: department,
             }
           : asset
       )
     );
+
+    setTransferOpen(false);
   }
 
   const filteredAssets = useMemo(() => {
@@ -59,8 +90,8 @@ export function Assets() {
         asset.assetTag,
         asset.name,
         asset.category,
-        asset.location,
         asset.status,
+        asset.location,
         asset.assignedTo,
       ]
         .join(" ")
@@ -71,6 +102,7 @@ export function Assets() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-6">
+
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">
@@ -82,7 +114,7 @@ export function Assets() {
           </p>
         </div>
 
-        <Button onClick={() => setOpen(true)}>
+        <Button onClick={() => setRegisterOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Register Asset
         </Button>
@@ -99,19 +131,29 @@ export function Assets() {
       <AssetTable
         assets={filteredAssets}
         onAllocate={handleAllocate}
+        onTransfer={handleTransfer}
       />
 
       <RegisterAssetDialog
-        open={open}
-        onOpenChange={setOpen}
+        open={registerOpen}
+        onOpenChange={setRegisterOpen}
         onSave={handleSave}
       />
 
       <AllocateAssetDialog
         open={allocateOpen}
+        asset={selectedAsset}
         onOpenChange={setAllocateOpen}
-        onAllocate={completeAllocation}
+        onAllocate={allocateAsset}
       />
+
+      <TransferAssetDialog
+        open={transferOpen}
+        asset={selectedAsset}
+        onOpenChange={setTransferOpen}
+        onTransfer={transferAsset}
+      />
+
     </div>
   );
 }

@@ -16,44 +16,36 @@ interface Props {
   open: boolean;
   asset: Asset | null;
   onOpenChange: (open: boolean) => void;
-
-  onAllocate: (data: {
-    employee: string;
-    department: string;
-    allocationDate: string;
-    returnDate: string;
-  }) => void;
+  onTransfer: (
+    assetId: string,
+    employee: string,
+    department: string
+  ) => void;
 }
 
-export function AllocateAssetDialog({
+export function TransferAssetDialog({
   open,
   asset,
   onOpenChange,
-  onAllocate,
+  onTransfer,
 }: Props) {
   const [employee, setEmployee] = useState("");
   const [department, setDepartment] = useState("");
-  const [allocationDate, setAllocationDate] = useState("");
-  const [returnDate, setReturnDate] = useState("");
 
   useEffect(() => {
-    if (open) {
-      setEmployee("");
-      setDepartment("");
-      setAllocationDate("");
-      setReturnDate("");
+    if (asset) {
+      setEmployee(asset.assignedTo || "");
+      setDepartment(asset.location || "");
     }
-  }, [open]);
+  }, [asset]);
 
   if (!asset) return null;
 
   function submit() {
-    onAllocate({
-      employee,
-      department,
-      allocationDate,
-      returnDate,
-    });
+    onTransfer(asset.id, employee, department);
+
+    setEmployee("");
+    setDepartment("");
 
     onOpenChange(false);
   }
@@ -62,12 +54,12 @@ export function AllocateAssetDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Allocate Asset</DialogTitle>
+          <DialogTitle>Transfer Asset</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <Input
-            placeholder="Employee Name"
+            placeholder="New Employee"
             value={employee}
             onChange={(e) => setEmployee(e.target.value)}
           />
@@ -76,18 +68,6 @@ export function AllocateAssetDialog({
             placeholder="Department"
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-          />
-
-          <Input
-            type="date"
-            value={allocationDate}
-            onChange={(e) => setAllocationDate(e.target.value)}
-          />
-
-          <Input
-            type="date"
-            value={returnDate}
-            onChange={(e) => setReturnDate(e.target.value)}
           />
         </div>
 
@@ -100,7 +80,7 @@ export function AllocateAssetDialog({
           </Button>
 
           <Button onClick={submit}>
-            Allocate
+            Transfer
           </Button>
         </DialogFooter>
       </DialogContent>

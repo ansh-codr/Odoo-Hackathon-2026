@@ -17,11 +17,16 @@ import { AssetDetailDialog } from "./AssetDetailDialog";
 type Props = {
   assets: Asset[];
   onAllocate: (asset: Asset) => void;
+  onTransfer: (asset: Asset) => void;
 };
 
-export function AssetTable({ assets, onAllocate }: Props) {
+export function AssetTable({
+  assets,
+  onAllocate,
+  onTransfer,
+}: Props) {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
-  const [open, setOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   if (assets.length === 0) {
     return (
@@ -30,6 +35,25 @@ export function AssetTable({ assets, onAllocate }: Props) {
       </div>
     );
   }
+
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case "Available":
+        return "bg-green-100 text-green-700";
+
+      case "Allocated":
+        return "bg-blue-100 text-blue-700";
+
+      case "Maintenance":
+        return "bg-yellow-100 text-yellow-700";
+
+      case "Retired":
+        return "bg-red-100 text-red-700";
+
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
 
   return (
     <>
@@ -43,7 +67,9 @@ export function AssetTable({ assets, onAllocate }: Props) {
               <TableHead>Status</TableHead>
               <TableHead>Assigned To</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead className="w-[260px]">Actions</TableHead>
+              <TableHead className="w-[280px]">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
 
@@ -58,15 +84,9 @@ export function AssetTable({ assets, onAllocate }: Props) {
 
                 <TableCell>
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      asset.status === "Available"
-                        ? "bg-green-100 text-green-700"
-                        : asset.status === "Allocated"
-                        ? "bg-blue-100 text-blue-700"
-                        : asset.status === "Maintenance"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
+                      asset.status
+                    )}`}
                   >
                     {asset.status}
                   </span>
@@ -79,12 +99,13 @@ export function AssetTable({ assets, onAllocate }: Props) {
                 <TableCell>{asset.location}</TableCell>
 
                 <TableCell className="space-x-2">
+
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => {
                       setSelectedAsset(asset);
-                      setOpen(true);
+                      setDetailOpen(true);
                     }}
                   >
                     View
@@ -102,9 +123,11 @@ export function AssetTable({ assets, onAllocate }: Props) {
                   <Button
                     size="sm"
                     disabled={asset.status !== "Allocated"}
+                    onClick={() => onTransfer(asset)}
                   >
                     Transfer
                   </Button>
+
                 </TableCell>
               </TableRow>
             ))}
@@ -113,8 +136,8 @@ export function AssetTable({ assets, onAllocate }: Props) {
       </div>
 
       <AssetDetailDialog
-        open={open}
-        onOpenChange={setOpen}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
         asset={selectedAsset}
       />
     </>
