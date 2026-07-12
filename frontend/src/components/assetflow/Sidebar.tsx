@@ -56,17 +56,11 @@ export function Sidebar({
     >
       {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
-        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5}>
-            <path d="M4 7l8-4 8 4-8 4-8-4z" />
-            <path d="M4 12l8 4 8-4" />
-            <path d="M4 17l8 4 8-4" />
-          </svg>
-        </div>
+        <img src="/Fevicon.png" alt="Assera Logo" className="h-7 w-7 shrink-0 object-contain rounded-md" />
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <div className="truncate font-display text-[15px] font-bold tracking-tight text-foreground">
-              AssetFlow
+              Assera
             </div>
             <div className="truncate text-[11px] font-medium text-muted-foreground">
               Northwind Corp.

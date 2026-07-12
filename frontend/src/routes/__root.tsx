@@ -73,13 +73,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AssetFlow — Enterprise Asset & Resource Management" },
+      { title: "Assera — Enterprise Asset & Resource Management" },
       {
         name: "description",
         content:
-          "AssetFlow is a modern ERP-style platform to track, allocate, book, and audit physical assets across your organization.",
+          "Assera is a modern ERP-style platform to track, allocate, book, and audit physical assets across your organization.",
       },
-      { property: "og:title", content: "AssetFlow — Asset & Resource Management" },
+      { property: "og:title", content: "Assera — Asset & Resource Management" },
       {
         property: "og:description",
         content:
@@ -89,6 +89,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      { rel: "icon", href: "/Fevicon.png" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },

@@ -18,13 +18,13 @@ import { StatusPill } from "@/components/assetflow/StatusPill";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "AssetFlow — Enterprise Asset & Resource Management" },
+      { title: "Assera — Enterprise Asset & Resource Management" },
       {
         name: "description",
         content:
           "The modern operating system for physical assets. Track, allocate, book, maintain and audit — built for offices, hospitals, factories and schools.",
       },
-      { property: "og:title", content: "AssetFlow — Asset Operations, Reimagined" },
+      { property: "og:title", content: "Assera — Asset Operations, Reimagined" },
       {
         property: "og:description",
         content:
@@ -55,14 +55,8 @@ function MarketingNav() {
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5}>
-              <path d="M4 7l8-4 8 4-8 4-8-4z" />
-              <path d="M4 12l8 4 8-4" />
-              <path d="M4 17l8 4 8-4" />
-            </svg>
-          </div>
-          <span className="font-display text-[17px] font-bold tracking-tight">AssetFlow</span>
+          <img src="/Fevicon.png" alt="Assera Logo" className="h-8 w-8 object-contain rounded-lg shadow-sm" />
+          <span className="font-display text-[17px] font-bold tracking-tight">Assera</span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
           <a href="#features" className="hover:text-foreground">Features</a>
@@ -117,7 +111,7 @@ function Hero() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-            AssetFlow is the modern operating system for physical assets — track laptops, projectors,
+            Assera is the modern operating system for physical assets — track laptops, projectors,
             vehicles and instruments across departments with the clarity of Linear and the
             rigor of an ERP.
           </p>
@@ -203,7 +197,7 @@ function Features() {
         </h2>
         <p className="mt-4 text-lg text-muted-foreground">
           Spreadsheets and legacy ERPs weren't made for shared resources.
-          AssetFlow is — from the ground up.
+          Assera is — from the ground up.
         </p>
       </div>
 
@@ -335,7 +329,7 @@ function ProductPeek() {
               <div className="h-2.5 w-2.5 rounded-full bg-status-available/60" />
             </div>
             <div className="mx-auto flex h-6 w-full max-w-md items-center justify-center rounded-md border border-border bg-background text-[11px] text-muted-foreground">
-              assetflow.app/dashboard
+              assera.app/dashboard
             </div>
           </div>
           {/* Faux dashboard */}
@@ -417,7 +411,7 @@ function CTASection() {
             to="/app"
             className="inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-foreground shadow-lg transition-transform hover:-translate-y-0.5"
           >
-            Launch AssetFlow <ArrowRight className="h-4 w-4" />
+            Launch Assera <ArrowRight className="h-4 w-4" />
           </Link>
           <button className="inline-flex h-11 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-5 text-sm font-semibold text-white backdrop-blur hover:bg-white/20">
             Contact sales
@@ -433,13 +427,8 @@ function Footer() {
     <footer className="border-t border-border">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <div className="grid h-6 w-6 place-items-center rounded-md bg-primary text-primary-foreground">
-            <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2.5}>
-              <path d="M4 7l8-4 8 4-8 4-8-4z" />
-              <path d="M4 12l8 4 8-4" />
-            </svg>
-          </div>
-          <span className="font-display font-semibold text-foreground">AssetFlow</span>
+          <img src="/Fevicon.png" alt="Assera Logo" className="h-6 w-6 object-contain rounded-md" />
+          <span className="font-display font-semibold text-foreground">Assera</span>
           <span className="text-xs">© 2026 · PEC Hacks 4.0</span>
         </div>
         <div className="flex items-center gap-5 text-xs">
