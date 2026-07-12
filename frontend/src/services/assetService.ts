@@ -224,6 +224,69 @@ export async function requestTransfer(assetId: string, toUserId: string): Promis
   );
 }
 
+export async function executeDirectTransfer(assetId: string, toUserId: string): Promise<void> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Authentication required");
+
+  await runTransaction(db, async (transaction) => {
+    const assetRef = doc(db, "assets", assetId);
+    const assetSnap = await transaction.get(assetRef);
+    if (!assetSnap.exists()) throw new Error("Asset does not exist");
+    
+    const assetData = assetSnap.data() as Asset;
+    if (assetData.status !== "Allocated") {
+      throw new Error("Asset is not currently allocated.");
+    }
+
+    let toUserName = "";
+    if (toUserId) {
+      const toUserSnap = await getDocs(query(collection(db, "users"), where("uid", "==", toUserId)));
+      if (toUserSnap.empty) throw new Error("Target user does not exist");
+      const toUserData = toUserSnap.docs[0].data();
+      toUserName = toUserData.displayName || toUserData.email || "";
+    }
+
+    // 1. Close current active allocation
+    const allocationsRef = collection(db, "allocations");
+    const activeQuery = query(allocationsRef, where("assetId", "==", assetId), where("status", "==", "Active"));
+    const querySnap = await getDocs(activeQuery);
+    querySnap.forEach((docSnap) => {
+      transaction.update(docSnap.ref, {
+        status: "Returned",
+        returnedAt: Date.now()
+      });
+    });
+
+    // 2. Create new allocation
+    if (toUserId) {
+      const allocId = "ALC-" + Date.now().toString().slice(-6);
+      const allocation: Allocation = {
+        id: allocId,
+        assetId: assetId,
+        userId: toUserId,
+        departmentId: assetData.departmentId,
+        type: "user",
+        status: "Active",
+        allocatedById: currentUser.uid,
+        allocatedByName: currentUser.displayName || currentUser.email || "System",
+        allocatedAt: Date.now(),
+        dueDate: null,
+        returnedAt: null
+      };
+      transaction.set(doc(db, "allocations", allocId), allocation);
+    }
+
+    // 3. Update asset details
+    transaction.update(assetRef, {
+      assignedToId: toUserId,
+      assignedToName: toUserName,
+      status: "Allocated"
+    });
+  });
+
+  await logActivity("Transfer Asset", `Directly transferred asset ${assetId} to ${toUserId}`);
+}
+
 export async function getTransferRequests(): Promise<TransferRequest[]> {
   const colRef = collection(db, "transferRequests");
   const snap = await getDocs(colRef);
