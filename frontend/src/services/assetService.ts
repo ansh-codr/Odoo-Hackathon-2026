@@ -127,7 +127,7 @@ export async function allocateAsset(
   }
 }
 
-export async function returnAsset(assetId: string): Promise<void> {
+export async function returnAsset(assetId: string, checkInNotes?: string, condition?: string): Promise<void> {
   await runTransaction(db, async (transaction) => {
     const assetRef = doc(db, "assets", assetId);
     const assetSnap = await transaction.get(assetRef);
@@ -168,8 +168,12 @@ export async function returnAsset(assetId: string): Promise<void> {
         `Asset ${assetData.name} (${assetData.assetTag}) has been returned successfully.`
       );
     }
+    
+    // If checkInNotes provided, append to the asset description for now
+    if (checkInNotes) {
+      transaction.update(assetRef, { description: assetData.description + "\\nCheck-in Notes: " + checkInNotes });
+    }
   });
-
   await logActivity("Return Asset", `Returned asset ${assetId}`);
 }
 
@@ -315,4 +319,11 @@ export function recordAssetHistory(
     description,
     timestamp: Date.now()
   });
+}
+
+
+export async function getAllocations(): Promise<Allocation[]> {
+  const colRef = collection(db, "allocations");
+  const snap = await getDocs(colRef);
+  return snap.docs.map(doc => doc.data() as Allocation);
 }

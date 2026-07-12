@@ -15,6 +15,7 @@ import { NotificationsLogs } from "@/components/assetflow/NotificationsLogs";
 import { ReportsAnalytics } from "@/components/assetflow/ReportsAnalytics";
 import { OrganizationSetup } from "@/components/assetflow/OrganizationSetup";
 import { Assets } from "@/components/assetflow/Assets";
+import { Allocations } from "@/components/assetflow/Allocations";
 
 export const Route = createFileRoute("/app")({
   component: AppShell,
@@ -66,6 +67,8 @@ function AppShell() {
             <Dashboard />
           ) : active === "assets" ? (
             <Assets />
+          ) : active === "allocations" ? (
+            <Allocations />
           ) : active === "bookings" ? (
             <ResourceBookings />
           ) : active === "maintenance" ? (

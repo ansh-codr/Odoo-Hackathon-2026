@@ -238,10 +238,11 @@ export function Assets() {
         <AllocateAssetPage
           asset={selectedAsset}
           onBack={() => {
-            setSelectedAsset(null);
             setPage("list");
+            setSelectedAsset(null);
           }}
           onAllocate={allocateAsset}
+          onTransferRequest={() => setPage("transfer")}
         />
       )}
 

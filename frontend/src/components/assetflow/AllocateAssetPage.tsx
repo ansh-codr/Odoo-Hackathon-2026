@@ -16,12 +16,14 @@ type Props = {
     allocationDate: string;
     returnDate: string;
   }) => void;
+  onTransferRequest: () => void;
 };
 
 export function AllocateAssetPage({
   asset,
   onBack,
   onAllocate,
+  onTransferRequest,
 }: Props) {
   const [employee, setEmployee] = useState("");
   const [department, setDepartment] = useState("");
@@ -65,7 +67,23 @@ export function AllocateAssetPage({
         Allocate the selected asset to an employee or department.
       </p>
 
-      <div className="mt-8 rounded-xl border p-6 space-y-6">
+      {asset.status === "Allocated" && (
+        <div className="mt-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+          <h3 className="font-semibold text-lg">Allocation Conflict</h3>
+          <p className="mt-1">
+            This asset is currently held by <strong>{asset.assignedTo || "another employee"}</strong>.
+            You cannot allocate an asset that is already taken.
+          </p>
+          <div className="mt-4 flex gap-3">
+            <Button variant="destructive" onClick={onTransferRequest}>
+              Raise Transfer Request
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {asset.status !== "Allocated" && (
+        <div className="mt-8 rounded-xl border p-6 space-y-6">
         <div>
           <h2 className="font-semibold text-lg">Asset Information</h2>
           <div className="mt-4 grid grid-cols-2 gap-4">
@@ -134,6 +152,7 @@ export function AllocateAssetPage({
           <Button onClick={submit}>Allocate Asset</Button>
         </div>
       </div>
+      )}
     </div>
   );
 }
