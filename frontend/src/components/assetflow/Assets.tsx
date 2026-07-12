@@ -224,6 +224,7 @@ export function Assets() {
         assets={filteredAssets}
         onAllocate={handleAllocate}
         onTransfer={handleTransfer}
+        userRole={userRole}
       />
 
           <RegisterAssetDialog

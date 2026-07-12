@@ -74,7 +74,12 @@ export async function logoutUser(): Promise<void> {
   if (user) {
     await logActivity("User Logout", `Logged out user ${user.email}`);
   }
-  await signOut(auth);
+  return signOut(auth);
+}
+
+export async function resetPassword(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
+  await logActivity("Password Reset", `Password reset email sent to ${email}`);
 }
 
 export async function getUserProfile(uid: string): Promise<UserDocument | null> {

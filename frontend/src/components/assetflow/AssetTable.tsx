@@ -18,12 +18,14 @@ type Props = {
   assets: Asset[];
   onAllocate: (asset: Asset) => void;
   onTransfer: (asset: Asset) => void;
+  userRole: string;
 };
 
 export function AssetTable({
   assets,
   onAllocate,
   onTransfer,
+  userRole,
 }: Props) {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -110,32 +112,36 @@ export function AssetTable({
                     View
                   </Button>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={!canAllocate(asset.status)}
-                    title={
-                      !canAllocate(asset.status)
-                        ? "Only available assets can be allocated"
-                        : ""
-                    }
-                    onClick={() => onAllocate(asset)}
-                  >
-                    Allocate
-                  </Button>
+                  {userRole !== "employee" && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!canAllocate(asset.status)}
+                        title={
+                          !canAllocate(asset.status)
+                            ? "Only available assets can be allocated"
+                            : ""
+                        }
+                        onClick={() => onAllocate(asset)}
+                      >
+                        Allocate
+                      </Button>
 
-                  <Button
-                    size="sm"
-                    disabled={!canTransfer(asset.status)}
-                    title={
-                      !canTransfer(asset.status)
-                        ? "Only allocated assets can be transferred"
-                        : ""
-                    }
-                    onClick={() => onTransfer(asset)}
-                  >
-                    Transfer
-                  </Button>
+                      <Button
+                        size="sm"
+                        disabled={!canTransfer(asset.status)}
+                        title={
+                          !canTransfer(asset.status)
+                            ? "Only allocated assets can be transferred"
+                            : ""
+                        }
+                        onClick={() => onTransfer(asset)}
+                      >
+                        Transfer
+                      </Button>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
