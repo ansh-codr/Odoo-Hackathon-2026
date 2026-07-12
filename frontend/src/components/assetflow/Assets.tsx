@@ -19,7 +19,7 @@ import {
   getAssets, 
   registerAsset, 
   allocateAsset as allocateAssetService,
-  requestTransfer 
+  executeDirectTransfer 
 } from "../../services/assetService";
 
 export function Assets() {
@@ -156,13 +156,13 @@ export function Assets() {
     department: string
   ) {
     try {
-      await requestTransfer(assetId, employee);
+      await executeDirectTransfer(assetId, employee);
       await fetchAssets();
-      toast.success("Transfer requested successfully");
+      toast.success("Asset transferred successfully");
       setSelectedAsset(null);
       setPage("list");
     } catch (err: any) {
-      toast.error(err.message || "Failed to request transfer");
+      toast.error(err.message || "Failed to transfer asset");
     }
   }
 

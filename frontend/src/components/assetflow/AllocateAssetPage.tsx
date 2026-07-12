@@ -89,7 +89,7 @@ export function AllocateAssetPage({
           <div className="mt-4 grid grid-cols-2 gap-4">
             <Input value={asset.assetTag} disabled />
             <Input value={asset.name} disabled />
-            <Input value={asset.categoryId} disabled />
+            <Input value={asset.serialNumber || ""} disabled />
             <Input value={asset.location || "N/A"} disabled />
           </div>
         </div>

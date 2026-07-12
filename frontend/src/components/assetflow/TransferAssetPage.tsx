@@ -58,7 +58,7 @@ export function TransferAssetPage({
           <div className="grid grid-cols-2 gap-4 mt-4">
             <Input value={asset.assetTag} disabled />
             <Input value={asset.name} disabled />
-            <Input value={asset.categoryId} disabled />
+            <Input value={asset.serialNumber || ""} disabled />
             <Input value={asset.location || "N/A"} disabled />
           </div>
         </div>
