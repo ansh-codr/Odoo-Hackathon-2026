@@ -14,6 +14,7 @@ export default defineConfig({
     tanstackStart({
       server: { entry: "server" }
     }),
+    react(),
     tsconfigPaths(),
   ],
 });
